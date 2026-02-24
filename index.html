@@ -42,8 +42,8 @@
     .swc-scroll::-webkit-scrollbar-thumb:hover { background: #F7931A; }
 
     .state-path { cursor: pointer; transition: filter 0.18s ease, stroke-width 0.12s ease; }
-    .state-path:hover { filter: brightness(1.4) drop-shadow(0 0 8px rgba(123, 63, 228, 0.7)); }
-    .state-path:focus { outline: none; stroke: #FFAD4D !important; stroke-width: 2.5px !important; }
+    .state-path:hover { filter: brightness(1.4) drop-shadow(0 0 8px rgba(123, 63, 228, 0.6)); }
+    .state-path:focus { outline: none; stroke: #9B6FF4 !important; stroke-width: 2.5px !important; }
     .state-label { pointer-events: none; user-select: none; font-family: 'Inter', sans-serif; font-weight: 700; font-size: 10px; fill: rgba(255, 255, 255, 0.85); text-anchor: middle; dominant-baseline: central; }
 
     @keyframes slideInRight { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
@@ -222,7 +222,7 @@
           officialUrl: p.officialUrl,
           isIncumbent,
           isRetiring,
-          isPriority: p.promotedPositioning != null && p.promotedPositioning <= 10,
+          isPriority: false,
         };
 
         if (cat === 'SENATE') {
@@ -464,7 +464,7 @@
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className="text-[#6B7280] text-xs">{c.isRetiring ? 'Retiring · Not Running' : c.isIncumbent ? 'Incumbent' : 'Challenger'}</span>
               {c.isRetiring && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">Open Seat</span>}
-              {c.isPriority && <span className="text-[11px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-medium">⭐ Priority Race</span>}
+
             </div>
             <div className="mt-1">
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: rating.color + '22', color: rating.color }}>
@@ -489,7 +489,6 @@
           <div className="flex items-center gap-2 mb-1">
             <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold">{title}</div>
             {isOpen && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">Open Seat</span>}
-            {race?.isPriority && <span className="text-[11px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-medium">⭐ Priority</span>}
           </div>
           <div className="border-t border-[#2D2A4A] mb-1" />
           {has ? (
@@ -802,7 +801,7 @@
       const { features, mesh } = useMemo(() => {
         if (!atlas) return { features: [], mesh: null };
         return {
-          features: topojson.feature(atlas, atlas.objects.states).features,
+          features: topojson.feature(atlas, atlas.objects.states).features.filter(f => String(f.id) !== '11'),
           mesh:     topojson.mesh(atlas, atlas.objects.states, (a, b) => a !== b),
         };
       }, [atlas]);
@@ -839,7 +838,7 @@
                   d={pathGen(feat)}
                   className="state-path"
                   fill="#7B3FE4"
-                  stroke={isActive ? '#FFAD4D' : '#0D0D1A'}
+                  stroke={isActive ? '#9B6FF4' : '#0D0D1A'}
                   strokeWidth={isActive ? 2.5 : 0.7}
                   tabIndex={0}
                   role="button"
@@ -863,7 +862,6 @@
                 NJ: { x: 920, y: 198 },
                 DE: { x: 920, y: 214 },
                 MD: { x: 920, y: 230 },
-                DC: { x: 920, y: 246 },
               };
               // Nudges for other tricky states
               const nudges = {
