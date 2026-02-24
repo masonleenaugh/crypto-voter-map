@@ -21,11 +21,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
+  <style>
+    @font-face { font-family: 'Satoshi'; src: url('https://font.download/cdn/webfont/satoshi/Satoshi-Light.woff') format('woff'); font-weight: 300; font-style: normal; font-display: swap; }
+    @font-face { font-family: 'Satoshi'; src: url('https://font.download/cdn/webfont/satoshi/Satoshi-Regular.woff') format('woff'); font-weight: 400; font-style: normal; font-display: swap; }
+    @font-face { font-family: 'Satoshi'; src: url('https://font.download/cdn/webfont/satoshi/Satoshi-Medium.woff') format('woff'); font-weight: 500; font-style: normal; font-display: swap; }
+    @font-face { font-family: 'Satoshi'; src: url('https://font.download/cdn/webfont/satoshi/Satoshi-Bold.woff') format('woff'); font-weight: 700; font-style: normal; font-display: swap; }
+    @font-face { font-family: 'Satoshi'; src: url('https://font.download/cdn/webfont/satoshi/Satoshi-Black.woff') format('woff'); font-weight: 900; font-style: normal; font-display: swap; }
+  </style>
+
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
+          fontFamily: { sans: ['Satoshi', 'Inter', 'ui-sans-serif', 'system-ui'] },
         },
       },
     };
@@ -34,7 +42,7 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body, #root { height: 100%; }
-    body { background: #0D0D1A; color: #fff; font-family: 'Inter', ui-sans-serif, system-ui; }
+    body { background: #0D0D1A; color: #fff; font-family: 'Satoshi', 'Inter', ui-sans-serif, system-ui; }
 
     .swc-scroll::-webkit-scrollbar { width: 4px; }
     .swc-scroll::-webkit-scrollbar-track { background: #1A1730; }
@@ -44,7 +52,7 @@
     .state-path { cursor: pointer; transition: filter 0.18s ease, stroke-width 0.12s ease; }
     .state-path:hover { filter: brightness(1.4) drop-shadow(0 0 8px rgba(123, 63, 228, 0.6)); }
     .state-path:focus { outline: none; stroke: #9B6FF4 !important; stroke-width: 2.5px !important; }
-    .state-label { pointer-events: none; user-select: none; font-family: 'Inter', sans-serif; font-weight: 700; font-size: 10px; fill: rgba(255, 255, 255, 0.85); text-anchor: middle; dominant-baseline: central; }
+    .state-label { pointer-events: none; user-select: none; font-family: 'Satoshi', 'Inter', sans-serif; font-weight: 700; font-size: 10px; fill: rgba(255, 255, 255, 0.85); text-anchor: middle; dominant-baseline: central; }
 
     @keyframes slideInRight { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes slideInUp { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: translateY(0); } }
