@@ -115,19 +115,19 @@
     );
 
     /* ================================================================
-       Rating display logic
-       Score 75–100  Pro-Crypto       #22C55E  ✅
-       Score 50–74   Leaning Pro      #84CC16  🟡
-       Score 26–49   Leaning Against  #F97316  🟠
-       Score 0–25    Anti-Crypto      #EF4444  ❌
-       null          Not Yet Rated    #9CA3AF  —
+       Rating display logic (letter grades)
+       Score 90–100  A  Strongly Pro-Crypto  #22C55E
+       Score 70–89   B  Pro-Crypto           #84CC16
+       Score 40–69   C  Neutral              #F97316
+       Score 0–39    F  Anti-Crypto          #EF4444
+       null          —  Not Yet Rated        #9CA3AF
        ================================================================ */
     function getRating(score) {
-      if (score == null) return { label: 'Not Yet Rated', color: '#9CA3AF', badge: '—' };
-      if (score >= 75)   return { label: 'Pro-Crypto',      color: '#22C55E', badge: '✅' };
-      if (score >= 50)   return { label: 'Leaning Pro',     color: '#84CC16', badge: '🟡' };
-      if (score >= 26)   return { label: 'Leaning Against', color: '#F97316', badge: '🟠' };
-      return                     { label: 'Anti-Crypto',    color: '#EF4444', badge: '❌' };
+      if (score == null) return { label: 'Not Yet Rated', grade: '—', color: '#9CA3AF', badge: '—' };
+      if (score >= 90)   return { label: 'Strongly Pro-Crypto', grade: 'A',  color: '#22C55E', badge: '🅰️' };
+      if (score >= 70)   return { label: 'Pro-Crypto',          grade: 'B',  color: '#84CC16', badge: '🅱️' };
+      if (score >= 40)   return { label: 'Neutral',             grade: 'C',  color: '#F97316', badge: '©️' };
+      return                     { label: 'Anti-Crypto',        grade: 'F',  color: '#EF4444', badge: '🅵' };
     }
 
     const PARTY_STYLE = {
@@ -140,21 +140,52 @@
     /* ================================================================
        RACE DERIVATION LOGIC
 
-       The SWC API returns current officeholders of the 119th Congress.
-       We derive the 2026 ballot as follows:
+       The SWC API sets dateEnd to 2027-01-03 for ALL senators (end of
+       119th Congress), so we cannot use it to distinguish Senate classes.
+       Instead we hardcode the 33 Class 2 seats (up Nov 2026) plus 2
+       special elections (FL, OH) using the incumbent's last name.
 
-       SENATE — Seats whose dateEnd === "2027-01-03T00:00:00.000Z" are
-       Class 2 seats up for election in November 2026.  The current holder
-       is the incumbent.
-
-       HOUSE — All 435 House seats are contested every two years so every
-       person with roleCategory === "CONGRESS" is a 2026 race incumbent.
-
-       If multiple API entries share the same state+district they are
-       grouped into one race (e.g. incumbent + rated challenger).
+       HOUSE — All 435 seats are contested every two years.
 
        We ignore roleCategory "PRESIDENT", "GOVERNOR", "ATTORNEY_GENERAL".
        ================================================================ */
+
+    // Class 2 senators up for election in 2026 (source: senate.gov)
+    // Key = state abbreviation, Value = incumbent last name for matching
+    // Senators NOT seeking re-election → label as "Open Seat" / "Retiring"
+    const RETIRING_SENATORS = new Set([
+      'Shaheen',     // NH — retiring
+      'Smith',       // MN — not seeking re-election
+      'Peters',      // MI — not running
+      'Durbin',      // IL — not running
+      'McConnell',   // KY — not running
+      'Tuberville',  // AL — running for governor
+      'Ernst',       // IA — not seeking third term
+      'Merkley',     // OR — running for governor
+    ]);
+
+    const SENATE_2026 = {
+      AL: 'Tuberville', AK: 'Sullivan', AR: 'Cotton', CO: 'Hickenlooper',
+      DE: 'Coons', GA: 'Ossoff', ID: 'Risch', IL: 'Durbin',
+      IA: 'Ernst', KS: 'Marshall', KY: 'McConnell', LA: 'Cassidy',
+      ME: 'Collins', MA: 'Markey', MI: 'Peters', MN: 'Smith',
+      MS: 'Hyde-Smith', MT: 'Daines', NE: 'Ricketts', NH: 'Shaheen',
+      NJ: 'Booker', NM: 'Luján', NC: 'Tillis', OK: 'Mullin',
+      OR: 'Merkley', RI: 'Reed', SC: 'Graham', SD: 'Rounds',
+      TN: 'Hagerty', TX: 'Cornyn', VA: 'Warner', WV: 'Capito', WY: 'Lummis',
+      // 2026 Special elections (Class 3 vacancies)
+      FL: 'Moody', OH: 'Husted',
+    };
+
+    function isClass2Senator(person) {
+      const abbr = person.primaryRole?.primaryState;
+      if (!abbr || !SENATE_2026[abbr]) return false;
+      const lastName = person.lastName || '';
+      // Match incumbents by last name, or include non-incumbent candidates (challengers)
+      if (person.primaryRole?.status !== 'HELD') return true; // challenger for this seat
+      return lastName === SENATE_2026[abbr] || lastName.includes(SENATE_2026[abbr]);
+    }
+
     function buildRaces(people) {
       const byState = {};                       // { fips: { senate, house: { [dist]: race } } }
 
@@ -172,22 +203,25 @@
         if (!byState[fips]) byState[fips] = { senate: null, house: {} };
 
         const score = p.manuallyOverriddenStanceScore ?? p.computedStanceScore;
+        const lastName = p.lastName || '';
+        const isRetiring = role.status === 'HELD' && RETIRING_SENATORS.has(lastName);
         const candidate = {
           id: p.id,
           slug: p.slug,
-          name: `${p.firstNickname || p.firstName} ${p.lastName}${p.nameSuffix ? ' ' + p.nameSuffix : ''}`,
+          name: `${p.firstNickname || p.firstName} ${lastName}${p.nameSuffix ? ' ' + p.nameSuffix : ''}`,
           party: p.politicalAffiliationCategoryV2,
           score,
           photo: p.profilePictureUrl,
           donationUrl: p.donationUrl,
           officialUrl: p.officialUrl,
           isIncumbent: role.status === 'HELD',
+          isRetiring,
           isPriority: p.promotedPositioning != null && p.promotedPositioning <= 10,
         };
 
         if (cat === 'SENATE') {
-          // Only include Class 2 seats (dateEnd 2027-01-03 → on the ballot Nov 2026)
-          if (role.dateEnd === '2027-01-03T00:00:00.000Z') {
+          // Only include Class 2 seats + 2026 special elections
+          if (SENATE_2026[abbr] && isClass2Senator(p)) {
             if (!byState[fips].senate) byState[fips].senate = { candidates: [], isPriority: false };
             byState[fips].senate.candidates.push(candidate);
             if (candidate.isPriority) byState[fips].senate.isPriority = true;
@@ -223,13 +257,13 @@
       const max = Math.max(...rated.map(c => c.score));
       const min = Math.min(...rated.map(c => c.score));
 
-      // Has pro-crypto incumbent & no anti → purple
-      if (max >= 75 && min > 25) return '#7B3FE4';
-      // Has anti-crypto incumbent & no pro → red (flip opportunity)
-      if (min <= 25 && max < 75) return '#EF4444';
-      // Mixed or moderate
-      if (max >= 75 && min <= 25) return '#4B2D8A';
-      if (max >= 50) return '#7B3FE4';
+      // Has pro-crypto (A/B) & no anti (F) → purple
+      if (max >= 70 && min >= 40) return '#7B3FE4';
+      // Has anti-crypto (F) & no pro → red (flip opportunity)
+      if (min < 40 && max < 70) return '#EF4444';
+      // Mixed — has both pro and anti
+      if (max >= 70 && min < 40) return '#4B2D8A';
+      if (max >= 40) return '#7B3FE4';
       return '#EF4444';
     }
 
@@ -400,12 +434,13 @@
               <span className="text-[11px] px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: party.color + '22', color: party.color }}>({party.abbr})</span>
             </div>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <span className="text-[#6B7280] text-xs">{c.isIncumbent ? 'Incumbent' : 'Challenger'}</span>
+              <span className="text-[#6B7280] text-xs">{c.isRetiring ? 'Retiring · Not Running' : c.isIncumbent ? 'Incumbent' : 'Challenger'}</span>
+              {c.isRetiring && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">Open Seat</span>}
               {c.isPriority && <span className="text-[11px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-medium">⭐ Priority Race</span>}
             </div>
             <div className="mt-1">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: rating.color + '22', color: rating.color }}>
-                {rating.badge} {c.score != null ? `${c.score}/100` : ''} {rating.label}
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: rating.color + '22', color: rating.color }}>
+                <span className="font-bold text-sm">{rating.grade}</span> {rating.label}
               </span>
             </div>
             <div className="flex items-center gap-3 mt-1.5">
@@ -420,10 +455,12 @@
     /* ── Race Section ──────────────────────────────────────────────────── */
     function RaceSection({ title, race }) {
       const has = race?.candidates?.length > 0;
+      const isOpen = race?.candidates?.some(c => c.isRetiring);
       return (
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-1">
             <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold">{title}</div>
+            {isOpen && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">Open Seat</span>}
             {race?.isPriority && <span className="text-[11px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-medium">⭐ Priority</span>}
           </div>
           <div className="border-t border-[#2D2A4A] mb-1" />
@@ -514,7 +551,7 @@
             {c.photo && <img src={c.photo} className="w-7 h-7 rounded-full object-cover" alt="" onError={e => { e.target.style.display = 'none'; }} />}
             <span className="text-sm font-medium text-white truncate">{c.name}</span>
             <span className="text-[11px] font-semibold" style={{ color: p.color }}>({p.abbr})</span>
-            <span className="ml-auto text-xs font-medium whitespace-nowrap" style={{ color: r.color }}>{c.score != null ? `${c.score}/100` : 'N/R'} {r.badge}</span>
+            <span className="ml-auto text-xs font-bold whitespace-nowrap" style={{ color: r.color }}>{r.grade}</span>
           </div>
         );
       }
@@ -840,9 +877,9 @@
               <div className="text-[#9CA3AF] text-xs uppercase tracking-widest font-semibold">National Snapshot</div>
               <div className="text-white text-2xl font-bold">{totalPoliticians} <span className="text-[#6B7280] text-sm font-normal">politicians rated</span></div>
               {[
-                { label: 'Pro-Crypto (75–100)',    count: proCount,   color: '#22C55E', pct: Math.round(proCount / totalPoliticians * 100) },
-                { label: 'Moderate (26–74)',        count: mixedCount, color: '#9CA3AF', pct: Math.round(mixedCount / totalPoliticians * 100) },
-                { label: 'Anti-Crypto (0–25)',      count: antiCount,  color: '#EF4444', pct: Math.round(antiCount / totalPoliticians * 100) },
+                { label: 'Pro-Crypto (A–B)',    count: proCount,   color: '#22C55E', pct: Math.round(proCount / totalPoliticians * 100) },
+                { label: 'Neutral (C)',          count: mixedCount, color: '#9CA3AF', pct: Math.round(mixedCount / totalPoliticians * 100) },
+                { label: 'Anti-Crypto (F)',      count: antiCount,  color: '#EF4444', pct: Math.round(antiCount / totalPoliticians * 100) },
               ].map(({ label, count, color, pct }) => (
                 <div key={label} className="flex items-center gap-2 text-xs">
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
@@ -914,9 +951,9 @@
         let pro = 0, mixed = 0, anti = 0;
         scored.forEach(p => {
           const s = p.manuallyOverriddenStanceScore ?? p.computedStanceScore;
-          if (s >= 75) pro++;
-          else if (s <= 25) anti++;
-          else mixed++;
+          if (s >= 70) pro++;        // A or B grade
+          else if (s >= 40) mixed++; // C grade
+          else anti++;               // F grade
         });
         return { total: scored.length, pro, mixed, anti };
       }, [rawPeople]);
