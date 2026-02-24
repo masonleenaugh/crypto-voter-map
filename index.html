@@ -256,7 +256,9 @@
         const m = d?.result?.addressMatches?.[0];
         if (!m) return null;
         const stateAbbr = m.addressComponents?.state;
-        const cd = m.geographies?.['Congressional Districts']?.[0];
+        const geos = m.geographies || {};
+        const cdKey = Object.keys(geos).find(k => k.toLowerCase().includes('congressional'));
+        const cd = cdKey ? geos[cdKey]?.[0] : null;
         const dist = cd?.BASENAME ?? cd?.CD ?? null;
         return { state: stateAbbr, district: dist ? String(parseInt(dist)) : null, formatted: m.matchedAddress };
       }
