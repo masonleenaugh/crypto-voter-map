@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<!--
+  2026 Crypto Voter Map — Stand With Crypto x Bitcoin Magazine
+
+  Embed this map on your site:
+  <iframe src="https://your-domain.com/index.html" width="100%" height="840" frameborder="0" allow="geolocation"></iframe>
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2026 Crypto Voter Map · Stand With Crypto</title>
+
+  <!-- CDN dependencies (no build step required) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; }
+    body { background: #0D0D1A; color: #fff; font-family: 'Inter', ui-sans-serif, system-ui; }
+
+    .swc-scroll::-webkit-scrollbar { width: 4px; }
+    .swc-scroll::-webkit-scrollbar-track { background: #1A1730; }
+    .swc-scroll::-webkit-scrollbar-thumb { background: #2D2A4A; border-radius: 2px; }
+    .swc-scroll::-webkit-scrollbar-thumb:hover { background: #7B3FE4; }
+
+    .state-path { cursor: pointer; transition: opacity 0.12s ease, stroke-width 0.12s ease; }
+    .state-path:hover { opacity: 0.72; }
+    .state-path:focus { outline: none; stroke: #9B6FF4 !important; stroke-width: 2.5px !important; }
+
+    @keyframes slideInRight { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes slideInUp { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .anim-slide-right { animation: slideInRight 0.22s ease; }
+    .anim-slide-up    { animation: slideInUp 0.25s ease; }
+    .anim-fade        { animation: fadeIn 0.18s ease; }
+    .anim-pulse       { animation: pulse 1.5s ease infinite; }
+
+    /* Address autocomplete dropdown styling */
+    .ac-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 100; background: #1A1730; border: 1px solid #2D2A4A; border-radius: 8px; margin-top: 4px; font-family: 'Inter', sans-serif; overflow: hidden; max-height: 240px; overflow-y: auto; }
+    .ac-item { padding: 8px 12px; color: #fff; border-top: 1px solid #2D2A4A; cursor: pointer; font-size: 13px; }
+    .ac-item:first-child { border-top: none; }
+    .ac-item:hover, .ac-item.selected { background: #2D2A4A; }
+    .ac-item .ac-main { color: #9B6FF4; font-size: 14px; }
+    .ac-item .ac-sub  { color: #9ca3af; font-size: 12px; margin-top: 1px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+    /* ================================================================
+       CONFIG — swap API keys here for deployment
+       ================================================================ */
+    const CONFIG = {
+      SWC_API_URL:  "https://www.standwithcrypto.org/api/public/dtsi/all-people/us",
+      TOPO_URL:     "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json",
+      SWC_JOIN_URL: "https://www.standwithcrypto.org?utm_source=bitcoinmagazine&utm_medium=verified-partner&utm_content=map",
+      SWC_PROFILE:  "https://www.standwithcrypto.org/politicians",
+    };
+
+    /* ================================================================
+       FIPS ↔ State mappings
+       ================================================================ */
+    const STATES = {
+      "01":{name:"Alabama",abbr:"AL"},"02":{name:"Alaska",abbr:"AK"},
+      "04":{name:"Arizona",abbr:"AZ"},"05":{name:"Arkansas",abbr:"AR"},
+      "06":{name:"California",abbr:"CA"},"08":{name:"Colorado",abbr:"CO"},
+      "09":{name:"Connecticut",abbr:"CT"},"10":{name:"Delaware",abbr:"DE"},
+      "11":{name:"Dist. of Columbia",abbr:"DC"},"12":{name:"Florida",abbr:"FL"},
+      "13":{name:"Georgia",abbr:"GA"},"15":{name:"Hawaii",abbr:"HI"},
+      "16":{name:"Idaho",abbr:"ID"},"17":{name:"Illinois",abbr:"IL"},
+      "18":{name:"Indiana",abbr:"IN"},"19":{name:"Iowa",abbr:"IA"},
+      "20":{name:"Kansas",abbr:"KS"},"21":{name:"Kentucky",abbr:"KY"},
+      "22":{name:"Louisiana",abbr:"LA"},"23":{name:"Maine",abbr:"ME"},
+      "24":{name:"Maryland",abbr:"MD"},"25":{name:"Massachusetts",abbr:"MA"},
+      "26":{name:"Michigan",abbr:"MI"},"27":{name:"Minnesota",abbr:"MN"},
+      "28":{name:"Mississippi",abbr:"MS"},"29":{name:"Missouri",abbr:"MO"},
+      "30":{name:"Montana",abbr:"MT"},"31":{name:"Nebraska",abbr:"NE"},
+      "32":{name:"Nevada",abbr:"NV"},"33":{name:"New Hampshire",abbr:"NH"},
+      "34":{name:"New Jersey",abbr:"NJ"},"35":{name:"New Mexico",abbr:"NM"},
+      "36":{name:"New York",abbr:"NY"},"37":{name:"North Carolina",abbr:"NC"},
+      "38":{name:"North Dakota",abbr:"ND"},"39":{name:"Ohio",abbr:"OH"},
+      "40":{name:"Oklahoma",abbr:"OK"},"41":{name:"Oregon",abbr:"OR"},
+      "42":{name:"Pennsylvania",abbr:"PA"},"44":{name:"Rhode Island",abbr:"RI"},
+      "45":{name:"South Carolina",abbr:"SC"},"46":{name:"South Dakota",abbr:"SD"},
+      "47":{name:"Tennessee",abbr:"TN"},"48":{name:"Texas",abbr:"TX"},
+      "49":{name:"Utah",abbr:"UT"},"50":{name:"Vermont",abbr:"VT"},
+      "51":{name:"Virginia",abbr:"VA"},"53":{name:"Washington",abbr:"WA"},
+      "54":{name:"West Virginia",abbr:"WV"},"55":{name:"Wisconsin",abbr:"WI"},
+      "56":{name:"Wyoming",abbr:"WY"},
+    };
+    const ABBR_TO_FIPS = Object.fromEntries(
+      Object.entries(STATES).map(([fips, { abbr }]) => [abbr, fips])
+    );
+
+    /* ================================================================
+       Rating display logic
+       Score 75–100  Pro-Crypto       #22C55E  ✅
+       Score 50–74   Leaning Pro      #84CC16  🟡
+       Score 26–49   Leaning Against  #F97316  🟠
+       Score 0–25    Anti-Crypto      #EF4444  ❌
+       null          Not Yet Rated    #9CA3AF  —
+       ================================================================ */
+    function getRating(score) {
+      if (score == null) return { label: 'Not Yet Rated', color: '#9CA3AF', badge: '—' };
+      if (score >= 75)   return { label: 'Pro-Crypto',      color: '#22C55E', badge: '✅' };
+      if (score >= 50)   return { label: 'Leaning Pro',     color: '#84CC16', badge: '🟡' };
+      if (score >= 26)   return { label: 'Leaning Against', color: '#F97316', badge: '🟠' };
+      return                     { label: 'Anti-Crypto',    color: '#EF4444', badge: '❌' };
+    }
+
+    const PARTY_STYLE = {
+      US_REPUBLICAN:  { abbr: 'R', label: 'Republican',  color: '#F87171' },
+      US_DEMOCRAT:    { abbr: 'D', label: 'Democrat',    color: '#60A5FA' },
+      US_INDEPENDENT: { abbr: 'I', label: 'Independent', color: '#A3A3A3' },
+    };
+    function getParty(v) { return PARTY_STYLE[v] ?? { abbr: '?', label: 'Unknown', color: '#9CA3AF' }; }
+
+    /* ================================================================
+       RACE DERIVATION LOGIC
+
+       The SWC API returns current officeholders of the 119th Congress.
+       We derive the 2026 ballot as follows:
+
+       SENATE — Seats whose dateEnd === "2027-01-03T00:00:00.000Z" are
+       Class 2 seats up for election in November 2026.  The current holder
+       is the incumbent.
+
+       HOUSE — All 435 House seats are contested every two years so every
+       person with roleCategory === "CONGRESS" is a 2026 race incumbent.
+
+       If multiple API entries share the same state+district they are
+       grouped into one race (e.g. incumbent + rated challenger).
+
+       We ignore roleCategory "PRESIDENT", "GOVERNOR", "ATTORNEY_GENERAL".
+       ================================================================ */
+    function buildRaces(people) {
+      const byState = {};                       // { fips: { senate, house: { [dist]: race } } }
+
+      people.forEach(p => {
+        const role = p.primaryRole;
+        if (!role) return;
+        const cat = role.roleCategory;
+        if (cat !== 'SENATE' && cat !== 'CONGRESS') return;
+
+        const abbr = role.primaryState;
+        if (!abbr) return;
+        const fips = ABBR_TO_FIPS[abbr];
+        if (!fips) return;
+
+        if (!byState[fips]) byState[fips] = { senate: null, house: {} };
+
+        const score = p.manuallyOverriddenStanceScore ?? p.computedStanceScore;
+        const candidate = {
+          id: p.id,
+          slug: p.slug,
+          name: `${p.firstNickname || p.firstName} ${p.lastName}${p.nameSuffix ? ' ' + p.nameSuffix : ''}`,
+          party: p.politicalAffiliationCategoryV2,
+          score,
+          photo: p.profilePictureUrl,
+          donationUrl: p.donationUrl,
+          officialUrl: p.officialUrl,
+          isIncumbent: role.status === 'HELD',
+          isPriority: p.promotedPositioning != null && p.promotedPositioning <= 10,
+        };
+
+        if (cat === 'SENATE') {
+          // Only include Class 2 seats (dateEnd 2027-01-03 → on the ballot Nov 2026)
+          if (role.dateEnd === '2027-01-03T00:00:00.000Z') {
+            if (!byState[fips].senate) byState[fips].senate = { candidates: [], isPriority: false };
+            byState[fips].senate.candidates.push(candidate);
+            if (candidate.isPriority) byState[fips].senate.isPriority = true;
+          }
+        } else {
+          // HOUSE — every seat is up in 2026
+          const dist = role.primaryDistrict || 'AL';
+          if (!byState[fips].house[dist]) byState[fips].house[dist] = { candidates: [], isPriority: false };
+          byState[fips].house[dist].candidates.push(candidate);
+          if (candidate.isPriority) byState[fips].house[dist].isPriority = true;
+        }
+      });
+
+      // Sort candidates within each race: incumbents first, then by score desc
+      Object.values(byState).forEach(s => {
+        const sortFn = (a, b) => (b.isIncumbent - a.isIncumbent) || ((b.score ?? -1) - (a.score ?? -1));
+        if (s.senate) s.senate.candidates.sort(sortFn);
+        Object.values(s.house).forEach(r => r.candidates.sort(sortFn));
+      });
+
+      return byState;
+    }
+
+    /* State map colour based on candidate crypto stance */
+    function getStateColor(raceData) {
+      if (!raceData) return '#1E1B2E';
+      const all = [];
+      if (raceData.senate) all.push(...raceData.senate.candidates);
+      Object.values(raceData.house).forEach(r => all.push(...r.candidates));
+      const rated = all.filter(c => c.score != null);
+      if (rated.length === 0) return '#1E1B2E';
+
+      const max = Math.max(...rated.map(c => c.score));
+      const min = Math.min(...rated.map(c => c.score));
+
+      // Has pro-crypto incumbent & no anti → purple
+      if (max >= 75 && min > 25) return '#7B3FE4';
+      // Has anti-crypto incumbent & no pro → red (flip opportunity)
+      if (min <= 25 && max < 75) return '#EF4444';
+      // Mixed or moderate
+      if (max >= 75 && min <= 25) return '#4B2D8A';
+      if (max >= 50) return '#7B3FE4';
+      return '#EF4444';
+    }
+
+    /* ================================================================
+       Census Geocoder — resolve address → congressional district
+       ================================================================ */
+    async function censusLookup(address) {
+      const url = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress'
+        + `?address=${encodeURIComponent(address)}`
+        + '&benchmark=Public_AR_Current&vintage=Current_Current&format=json';
+      const r = await fetch(url);
+      const d = await r.json();
+      const m = d?.result?.addressMatches?.[0];
+      if (!m) return null;
+      const stateAbbr = m.addressComponents?.state;
+      const cd = m.geographies?.['Congressional Districts']?.[0];
+      const dist = cd?.BASENAME ?? cd?.CD ?? null;
+      return { state: stateAbbr, district: dist ? String(parseInt(dist)) : null, formatted: m.matchedAddress };
+    }
+
+    /*
+     * Decode compact fallback data format back to API-like objects.
+     * Compact: [name, party, score, state, role, distOrUp, incumbent, priority, slug, photo]
+     */
+    function decodeCompactData(arr) {
+      const PARTY_MAP = { R: 'US_REPUBLICAN', D: 'US_DEMOCRAT', I: 'US_INDEPENDENT' };
+      return arr.map(r => ({
+        id: r[8] || Math.random().toString(36).slice(2),
+        slug: r[8],
+        firstName: r[0].split(' ')[0],
+        lastName: r[0].split(' ').slice(1).join(' '),
+        politicalAffiliationCategoryV2: PARTY_MAP[r[1]] || null,
+        computedStanceScore: r[2] === -1 ? null : r[2],
+        manuallyOverriddenStanceScore: null,
+        profilePictureUrl: r[9] || null,
+        promotedPositioning: r[7] === 1 ? 1 : null,
+        donationUrl: null,
+        officialUrl: null,
+        primaryRole: {
+          roleCategory: r[4] === 'S' ? 'SENATE' : 'CONGRESS',
+          primaryState: r[3],
+          primaryDistrict: r[4] === 'H' ? (r[5] || '') : '',
+          status: r[6] === 1 ? 'HELD' : 'RUNNING_FOR',
+          dateEnd: (r[4] === 'S' && r[5] === 1) ? '2027-01-03T00:00:00.000Z' : '',
+        },
+      }));
+    }
+
+    /* Nominatim (OpenStreetMap) address autocomplete — free, no API key needed */
+    let _nominatimTimer = null;
+    function nominatimAutocomplete(query) {
+      return new Promise((resolve) => {
+        clearTimeout(_nominatimTimer);
+        if (!query || query.length < 3) { resolve([]); return; }
+        _nominatimTimer = setTimeout(async () => {
+          try {
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&countrycodes=us&format=json&addressdetails=1&limit=5`;
+            const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            const data = await r.json();
+            resolve(data.map(d => ({
+              display: d.display_name,
+              main: d.address?.road ? `${d.address.house_number || ''} ${d.address.road}`.trim() : d.display_name.split(',')[0],
+              sub: d.display_name.split(',').slice(1, 4).join(',').trim(),
+              state: d.address?.['ISO3166-2-lvl4']?.replace('US-', '') || d.address?.state || '',
+              full: d.display_name,
+            })));
+          } catch { resolve([]); }
+        }, 300); // debounce 300ms to respect Nominatim rate limits
+      });
+    }
+
+    /* ================================================================
+       COMPONENTS
+       ================================================================ */
+
+    function ShieldIcon({ size = 24 }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 2L4 8v8c0 7.73 5.12 14.95 12 16.73C22.88 30.95 28 23.73 28 16V8L16 2z" fill="#7B3FE4"/>
+          <path d="M16 2L4 8v8c0 7.73 5.12 14.95 12 16.73V2z" fill="#9B6FF4"/>
+          <path d="M12 15l3 3 5-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      );
+    }
+
+    function CTAButton({ size = 'md', className = '', block = false }) {
+      const pad = { sm: 'px-3 py-1.5 text-xs', md: 'px-4 py-2 text-sm', lg: 'px-5 py-3 text-base' }[size];
+      return (
+        <a
+          href={CONFIG.SWC_JOIN_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`
+            inline-flex items-center justify-center gap-2 font-bold rounded-xl
+            bg-[#7B3FE4] hover:bg-[#9B6FF4] active:bg-[#6B2FD4]
+            text-white transition-colors duration-150 select-none
+            ${pad} ${block ? 'w-full' : ''} ${className}
+          `}
+        >
+          <ShieldIcon size={size === 'lg' ? 22 : size === 'md' ? 18 : 15} />
+          Join Stand With Crypto
+        </a>
+      );
+    }
+
+    function CloseBtn({ onClick }) {
+      return (
+        <button onClick={onClick} className="ml-2 p-1.5 rounded-lg text-[#9CA3AF] hover:text-white hover:bg-[#2D2A4A] transition-colors flex-shrink-0" aria-label="Close panel">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+        </button>
+      );
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    function Header({ totalPoliticians }) {
+      return (
+        <header className="flex items-center justify-between px-4 py-3 border-b border-[#2D2A4A] bg-[#0D0D1A] z-20 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <ShieldIcon size={32} />
+            <div>
+              <h1 className="text-white font-bold text-base sm:text-lg leading-tight">2026 Crypto Voter Map</h1>
+              <p className="text-[#6B7280] text-xs hidden sm:block">Track every Senate and House race. See where candidates stand on crypto.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {totalPoliticians > 0 && (
+              <span className="text-[#6B7280] text-xs hidden md:block">
+                <span className="text-[#9B6FF4] font-semibold">{totalPoliticians}</span> politicians tracked
+              </span>
+            )}
+            <CTAButton size="sm" className="hidden sm:inline-flex" />
+          </div>
+        </header>
+      );
+    }
+
+    /* ── Candidate Card ────────────────────────────────────────────────── */
+    function CandidateCard({ c }) {
+      const rating = getRating(c.score);
+      const party  = getParty(c.party);
+      const profileUrl = c.slug ? `${CONFIG.SWC_PROFILE}/${c.slug}` : null;
+
+      return (
+        <div className="flex gap-3 py-3 border-b border-[#2D2A4A] last:border-0">
+          {/* Photo */}
+          {c.photo ? (
+            <img src={c.photo} alt="" className="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2" style={{ borderColor: rating.color }} onError={e => { e.target.style.display = 'none'; }} />
+          ) : (
+            <div className="w-11 h-11 rounded-full bg-[#2D2A4A] flex items-center justify-center flex-shrink-0 text-base font-bold text-[#6B7280]">{c.name.charAt(0)}</div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-white text-sm font-semibold truncate">{c.name}</span>
+              <span className="text-[11px] px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: party.color + '22', color: party.color }}>({party.abbr})</span>
+            </div>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <span className="text-[#6B7280] text-xs">{c.isIncumbent ? 'Incumbent' : 'Challenger'}</span>
+              {c.isPriority && <span className="text-[11px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-medium">⭐ Priority Race</span>}
+            </div>
+            <div className="mt-1">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: rating.color + '22', color: rating.color }}>
+                {rating.badge} {c.score != null ? `${c.score}/100` : ''} {rating.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 mt-1.5">
+              {profileUrl && <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#9B6FF4] hover:text-[#7B3FE4] transition-colors">View on SWC ↗</a>}
+              {c.donationUrl && <a href={c.donationUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#9B6FF4] hover:text-[#7B3FE4] transition-colors">Donate ↗</a>}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Race Section ──────────────────────────────────────────────────── */
+    function RaceSection({ title, race }) {
+      const has = race?.candidates?.length > 0;
+      return (
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold">{title}</div>
+            {race?.isPriority && <span className="text-[11px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-medium">⭐ Priority</span>}
+          </div>
+          <div className="border-t border-[#2D2A4A] mb-1" />
+          {has ? (
+            <>
+              {race.candidates.map(c => <CandidateCard key={c.id} c={c} />)}
+              {race.candidates.length === 1 && <p className="text-[#6B7280] text-xs italic mt-1">Challenger ratings coming soon.</p>}
+            </>
+          ) : (
+            <p className="text-[#6B7280] text-xs italic py-2">No candidates rated yet for this race.</p>
+          )}
+        </div>
+      );
+    }
+
+    /* ── State Detail Panel ────────────────────────────────────────────── */
+    function StatePanel({ fips, races, onClose }) {
+      const state = STATES[fips];
+      const scrollRef = useRef(null);
+      if (!state) return null;
+      const data = races[fips];
+      const houseKeys = data ? Object.keys(data.house).sort((a, b) => a === 'AL' ? -1 : b === 'AL' ? 1 : parseInt(a) - parseInt(b)) : [];
+
+      // Reset scroll when state changes
+      useEffect(() => { scrollRef.current?.scrollTo(0, 0); }, [fips]);
+
+      return (
+        <div className="anim-slide-right flex flex-col h-full overflow-hidden">
+          <div className="flex items-start justify-between p-4 border-b border-[#2D2A4A] flex-shrink-0">
+            <div>
+              <h2 className="text-white font-bold text-lg">{state.name} — 2026 Races</h2>
+            </div>
+            <CloseBtn onClick={onClose} />
+          </div>
+
+          <div ref={scrollRef} className="flex-1 overflow-y-auto swc-scroll px-4 py-3">
+            {!data ? (
+              <div className="text-center py-10">
+                <p className="text-[#9CA3AF] text-sm mb-4">No rated candidates yet for {state.name}. Sign up at Stand With Crypto to stay informed.</p>
+                <CTAButton size="sm" />
+              </div>
+            ) : (
+              <>
+                {/* Senate section */}
+                {data.senate ? (
+                  <RaceSection title={`U.S. Senate — ${state.name}`} race={data.senate} />
+                ) : (
+                  <div className="mb-4">
+                    <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. Senate</div>
+                    <div className="border-t border-[#2D2A4A] mb-1" />
+                    <p className="text-[#6B7280] text-xs italic py-2">This state's Senate seat is not up for election in 2026.</p>
+                  </div>
+                )}
+
+                {/* House sections — one per district */}
+                {houseKeys.length > 0 ? houseKeys.map(dist => (
+                  <RaceSection key={dist} title={`U.S. House — ${state.abbr}-${dist === 'AL' ? 'At Large' : dist}`} race={data.house[dist]} />
+                )) : (
+                  <div className="mb-4">
+                    <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House</div>
+                    <div className="border-t border-[#2D2A4A] mb-1" />
+                    <p className="text-[#6B7280] text-xs italic py-2">No rated House candidates for {state.name} yet.</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="p-4 border-t border-[#2D2A4A] flex-shrink-0">
+            <CTAButton size="lg" block />
+          </div>
+        </div>
+      );
+    }
+
+    /* ── My Races Card ─────────────────────────────────────────────────── */
+    function MyRacesCard({ result, races, onClose }) {
+      const { state: stateAbbr, district, formatted } = result;
+      const fips = ABBR_TO_FIPS[stateAbbr];
+      const stateName = STATES[fips]?.name ?? stateAbbr;
+      const data = races[fips];
+
+      function MiniCandidate({ c }) {
+        const r = getRating(c.score);
+        const p = getParty(c.party);
+        return (
+          <div className="flex items-center gap-2 py-1.5">
+            {c.photo && <img src={c.photo} className="w-7 h-7 rounded-full object-cover" alt="" onError={e => { e.target.style.display = 'none'; }} />}
+            <span className="text-sm font-medium text-white truncate">{c.name}</span>
+            <span className="text-[11px] font-semibold" style={{ color: p.color }}>({p.abbr})</span>
+            <span className="ml-auto text-xs font-medium whitespace-nowrap" style={{ color: r.color }}>{c.score != null ? `${c.score}/100` : 'N/R'} {r.badge}</span>
+          </div>
+        );
+      }
+
+      return (
+        <div className="anim-slide-right flex flex-col h-full overflow-hidden">
+          <div className="flex items-start justify-between p-4 border-b border-[#2D2A4A] flex-shrink-0">
+            <div>
+              <h2 className="text-white font-bold text-lg">📍 Your 2026 Races</h2>
+              <p className="text-[#9CA3AF] text-xs mt-0.5">Based on: {formatted || stateAbbr}</p>
+            </div>
+            <CloseBtn onClick={onClose} />
+          </div>
+
+          <div className="flex-1 overflow-y-auto swc-scroll px-4 py-3">
+            {data?.senate && (
+              <div className="mb-4">
+                <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. Senate — {stateName}</div>
+                <div className="border-t border-[#2D2A4A] mb-1" />
+                {data.senate.candidates.map(c => <MiniCandidate key={c.id} c={c} />)}
+              </div>
+            )}
+
+            {district && data?.house?.[district] ? (
+              <div className="mb-4">
+                <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{district}</div>
+                <div className="border-t border-[#2D2A4A] mb-1" />
+                {data.house[district].candidates.map(c => <MiniCandidate key={c.id} c={c} />)}
+              </div>
+            ) : district && !data?.house?.[district] ? (
+              <div className="mb-4">
+                <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{district}</div>
+                <div className="border-t border-[#2D2A4A] mb-1" />
+                <p className="text-[#6B7280] text-xs italic py-1">No candidates rated yet for this district. Sign up at Stand With Crypto to stay informed.</p>
+              </div>
+            ) : !district && data?.house && Object.keys(data.house).length > 0 ? (
+              <div className="mb-4">
+                <p className="text-[#9CA3AF] text-[11px] italic mb-2">Couldn't pinpoint your exact district — showing all House races in {stateName}.</p>
+                {Object.entries(data.house).sort((a, b) => Number(a[0]) - Number(b[0])).map(([dist, race]) => (
+                  <div key={dist} className="mb-3">
+                    <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{dist}</div>
+                    <div className="border-t border-[#2D2A4A] mb-1" />
+                    {race.candidates.map(c => <MiniCandidate key={c.id} c={c} />)}
+                  </div>
+                ))}
+              </div>
+            ) : !data?.senate && !data?.house ? (
+              <p className="text-[#9CA3AF] text-sm py-4">No rated candidates in your area yet. Sign up to be notified.</p>
+            ) : null}
+
+            <p className="text-[#4B5563] text-[11px] mt-2">Your address is used only to identify your district and is never stored.</p>
+          </div>
+
+          <div className="p-4 border-t border-[#2D2A4A] flex-shrink-0">
+            <CTAButton size="lg" block />
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Address Search ────────────────────────────────────────────────── */
+    function AddressSearch({ onResult }) {
+      const [addr, setAddr]         = useState('');
+      const [busy, setBusy]         = useState(false);
+      const [error, setError]       = useState('');
+      const [suggestions, setSugg]  = useState([]);
+      const [selIdx, setSelIdx]     = useState(-1);
+      const [showDrop, setShowDrop] = useState(false);
+      const wrapRef  = useRef(null);
+
+      // Close dropdown on outside click
+      useEffect(() => {
+        const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setShowDrop(false); };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+      }, []);
+
+      // Fetch suggestions as user types
+      async function handleChange(val) {
+        setAddr(val);
+        setSelIdx(-1);
+        setError('');
+        if (val.length < 3) { setSugg([]); setShowDrop(false); return; }
+        const results = await nominatimAutocomplete(val);
+        setSugg(results);
+        setShowDrop(results.length > 0);
+      }
+
+      // Keyboard nav in dropdown
+      function handleKeyDown(e) {
+        if (!showDrop || suggestions.length === 0) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); setSelIdx(i => Math.min(i + 1, suggestions.length - 1)); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); setSelIdx(i => Math.max(i - 1, 0)); }
+        else if (e.key === 'Enter' && selIdx >= 0) { e.preventDefault(); pickSuggestion(suggestions[selIdx]); }
+        else if (e.key === 'Escape') { setShowDrop(false); }
+      }
+
+      function pickSuggestion(s) {
+        setAddr(s.full);
+        setSugg([]);
+        setShowDrop(false);
+        doLookup(s.full, s.state);
+      }
+
+      async function doLookup(address, knownState) {
+        setBusy(true);
+        setError('');
+        try {
+          const result = await censusLookup(address);
+          if (result?.state) {
+            onResult(result);
+          } else if (knownState && ABBR_TO_FIPS[knownState]) {
+            onResult({ state: knownState, district: null, formatted: address });
+          } else {
+            const m = address.toUpperCase().match(/\b([A-Z]{2})\b/g);
+            const stateMatch = m && m.find(s => ABBR_TO_FIPS[s]);
+            if (stateMatch) {
+              onResult({ state: stateMatch, district: null, formatted: address });
+            } else {
+              setError("Couldn't pinpoint your district — try including your full address with zip code.");
+            }
+          }
+        } catch {
+          // Census API failed — use state from Nominatim or text extraction
+          if (knownState && ABBR_TO_FIPS[knownState]) {
+            onResult({ state: knownState, district: null, formatted: address });
+          } else {
+            const m = address.toUpperCase().match(/\b([A-Z]{2})\b/g);
+            const stateMatch = m && m.find(s => ABBR_TO_FIPS[s]);
+            if (stateMatch) {
+              onResult({ state: stateMatch, district: null, formatted: address });
+            } else {
+              setError("Address lookup failed — please try again.");
+            }
+          }
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      function handleSubmit(e) {
+        e.preventDefault();
+        if (!addr.trim()) return;
+        setShowDrop(false);
+        doLookup(addr.trim());
+      }
+
+      return (
+        <form onSubmit={handleSubmit} className="p-4 border-b border-[#2D2A4A] flex-shrink-0">
+          <label className="block text-white font-semibold text-sm mb-2">Find your 2026 races</label>
+          <div className="flex gap-2 relative" ref={wrapRef}>
+            <div className="flex-1 min-w-0 relative">
+              <input
+                type="text"
+                value={addr}
+                onChange={e => handleChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => { if (suggestions.length > 0) setShowDrop(true); }}
+                placeholder="Start typing your address…"
+                disabled={busy}
+                className="w-full bg-[#0D0D1A] border border-[#2D2A4A] rounded-lg px-3 py-2 text-sm text-white placeholder-[#4B5563] focus:outline-none focus:border-[#7B3FE4] transition-colors disabled:opacity-50"
+                aria-label="Enter your street address"
+                autoComplete="off"
+                role="combobox"
+                aria-expanded={showDrop}
+                aria-autocomplete="list"
+              />
+              {showDrop && suggestions.length > 0 && (
+                <div className="ac-dropdown" role="listbox">
+                  {suggestions.map((s, i) => (
+                    <div
+                      key={i}
+                      className={`ac-item${i === selIdx ? ' selected' : ''}`}
+                      role="option"
+                      aria-selected={i === selIdx}
+                      onMouseEnter={() => setSelIdx(i)}
+                      onClick={() => pickSuggestion(s)}
+                    >
+                      <div className="ac-main">{s.main}</div>
+                      {s.sub && <div className="ac-sub">{s.sub}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button type="submit" disabled={busy} className="bg-[#7B3FE4] hover:bg-[#9B6FF4] disabled:opacity-40 text-white text-sm font-bold px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
+              {busy ? <span className="anim-pulse inline-block">…</span> : 'Find My Races'}
+            </button>
+          </div>
+          {error && <p className="text-[#F87171] text-xs mt-2" role="alert">{error}</p>}
+          <p className="text-[#4B5563] text-[11px] mt-1.5">Your address is used only to identify your district and is never stored.</p>
+        </form>
+      );
+    }
+
+    /* ── Map Legend ─────────────────────────────────────────────────────── */
+    function MapLegend() {
+      const items = [
+        { color: '#7B3FE4', label: 'Pro-Crypto Leaning' },
+        { color: '#4B2D8A', label: 'Mixed Stances' },
+        { color: '#EF4444', label: 'Anti-Crypto Leaning' },
+        { color: '#1E1B2E', label: 'No Data Yet' },
+      ];
+      return (
+        <div className="absolute bottom-3 left-3 bg-[#1A1730]/90 backdrop-blur-sm border border-[#2D2A4A] rounded-xl p-3 pointer-events-none" aria-label="Map color legend" role="img">
+          <div className="text-[#9CA3AF] text-[10px] uppercase tracking-widest font-semibold mb-2">Legend</div>
+          {items.map(({ color, label }) => (
+            <div key={label} className="flex items-center gap-2 mb-1 last:mb-0">
+              <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: color }} />
+              <span className="text-[#D1D5DB] text-xs">{label}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    /* ── Hover Tooltip ─────────────────────────────────────────────────── */
+    function HoverTooltip({ fips, races, x, y }) {
+      if (!fips) return null;
+      const state = STATES[fips];
+      if (!state) return null;
+      const data = races[fips];
+      const senateCount = data?.senate ? 1 : 0;
+      const houseCount = data ? Object.keys(data.house).length : 0;
+
+      return (
+        <div className="fixed z-50 pointer-events-none bg-[#1A1730] border border-[#2D2A4A] rounded-xl px-3 py-2 shadow-2xl text-sm anim-fade" style={{ left: x + 14, top: y - 8, transform: 'translateY(-100%)' }} role="tooltip">
+          <div className="text-white font-semibold">{state.name}</div>
+          <div className="text-[#9CA3AF] text-xs mt-0.5">
+            {senateCount > 0 && <span>{senateCount} Senate race</span>}
+            {senateCount > 0 && houseCount > 0 && <span> · </span>}
+            {houseCount > 0 && <span>{houseCount} House race{houseCount !== 1 ? 's' : ''}</span>}
+            {senateCount === 0 && houseCount === 0 && <span>No rated races</span>}
+          </div>
+          <div className="text-[#4B5563] text-[11px] mt-1">Click to explore →</div>
+        </div>
+      );
+    }
+
+    /* ── US Map (D3 geo + React SVG) ───────────────────────────────────── */
+    function USMap({ colorMap, onStateClick, selectedFips, races }) {
+      const [atlas,   setAtlas]   = useState(null);
+      const [mapErr,  setMapErr]  = useState(false);
+      const [tooltip, setTooltip] = useState({ fips: null, x: 0, y: 0 });
+
+      useEffect(() => {
+        d3.json(CONFIG.TOPO_URL).then(setAtlas).catch(() => setMapErr(true));
+      }, []);
+
+      const { features, mesh } = useMemo(() => {
+        if (!atlas) return { features: [], mesh: null };
+        return {
+          features: topojson.feature(atlas, atlas.objects.states).features,
+          mesh:     topojson.mesh(atlas, atlas.objects.states, (a, b) => a !== b),
+        };
+      }, [atlas]);
+
+      const pathGen = useMemo(() => {
+        const proj = d3.geoAlbersUsa().scale(1300).translate([487, 305]);
+        return d3.geoPath().projection(proj);
+      }, []);
+
+      if (mapErr) return (
+        <div className="flex items-center justify-center w-full h-full text-[#9CA3AF] text-center p-8">
+          <div>
+            <p className="font-semibold mb-2">Map data temporarily unavailable.</p>
+            <CTAButton />
+          </div>
+        </div>
+      );
+
+      if (!atlas) return (
+        <div className="flex items-center justify-center w-full h-full">
+          <div className="text-[#6B7280] text-sm anim-pulse">Loading map…</div>
+        </div>
+      );
+
+      return (
+        <>
+          <svg viewBox="0 0 975 610" className="w-full h-auto max-h-full" role="img" aria-label="Interactive US map for 2026 crypto elections">
+            {features.map(feat => {
+              const fips = String(feat.id).padStart(2, '0');
+              const isActive = fips === selectedFips;
+              return (
+                <path
+                  key={fips}
+                  d={pathGen(feat)}
+                  className="state-path"
+                  fill={colorMap[fips] || '#1E1B2E'}
+                  stroke={isActive ? '#9B6FF4' : '#0D0D1A'}
+                  strokeWidth={isActive ? 2.5 : 0.7}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${STATES[fips]?.name ?? fips} — click for 2026 race details`}
+                  onClick={() => onStateClick(fips)}
+                  onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onStateClick(fips)}
+                  onMouseMove={e => setTooltip({ fips, x: e.clientX, y: e.clientY })}
+                  onMouseLeave={() => setTooltip({ fips: null, x: 0, y: 0 })}
+                />
+              );
+            })}
+            {mesh && <path d={pathGen(mesh)} fill="none" stroke="#0D0D1A" strokeWidth="0.5" pointerEvents="none" />}
+          </svg>
+          <HoverTooltip {...tooltip} races={races} />
+        </>
+      );
+    }
+
+    /* ── Sidebar empty state ───────────────────────────────────────────── */
+    function SidebarEmpty({ totalPoliticians, proCount, mixedCount, antiCount }) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-6 text-center gap-4">
+          <ShieldIcon size={48} />
+          <div>
+            <p className="text-white font-semibold mb-1">Explore the 2026 Races</p>
+            <p className="text-[#6B7280] text-sm leading-relaxed">
+              Click any state on the map to see which candidates support crypto,
+              or enter your address above to find your own races.
+            </p>
+          </div>
+          {totalPoliticians > 0 && (
+            <div className="bg-[#2D2A4A]/50 rounded-xl p-4 w-full text-left space-y-2">
+              <div className="text-[#9CA3AF] text-xs uppercase tracking-widest font-semibold">National Snapshot</div>
+              <div className="text-white text-2xl font-bold">{totalPoliticians} <span className="text-[#6B7280] text-sm font-normal">politicians rated</span></div>
+              {[
+                { label: 'Pro-Crypto (75–100)',    count: proCount,   color: '#22C55E', pct: Math.round(proCount / totalPoliticians * 100) },
+                { label: 'Moderate (26–74)',        count: mixedCount, color: '#9CA3AF', pct: Math.round(mixedCount / totalPoliticians * 100) },
+                { label: 'Anti-Crypto (0–25)',      count: antiCount,  color: '#EF4444', pct: Math.round(antiCount / totalPoliticians * 100) },
+              ].map(({ label, count, color, pct }) => (
+                <div key={label} className="flex items-center gap-2 text-xs">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                  <span className="text-[#D1D5DB] flex-1">{label}</span>
+                  <span className="font-semibold tabular-nums" style={{ color }}>{count}</span>
+                  <div className="w-16 bg-[#2D2A4A] rounded-full h-1.5">
+                    <div className="h-1.5 rounded-full" style={{ background: color, width: `${pct}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <CTAButton size="md" className="mt-2" />
+        </div>
+      );
+    }
+
+    /* ================================================================
+       APP
+       ================================================================ */
+    function App() {
+      const [races,        setRaces]        = useState({});
+      const [loading,      setLoading]      = useState(true);
+      const [apiError,     setApiError]     = useState(false);
+      const [selectedFips, setSelectedFips] = useState(null);
+      const [panelMode,    setPanelMode]    = useState(null);   // 'state' | 'races'
+      const [myRaces,      setMyRaces]      = useState(null);
+      const [mobileOpen,   setMobileOpen]   = useState(false);
+      const [rawPeople,    setRawPeople]    = useState([]);
+
+      // Fetch live data from SWC API, fallback to local compact JSON
+      useEffect(() => {
+        fetch(CONFIG.SWC_API_URL)
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(data => {
+            const people = data.people || [];
+            setRawPeople(people);
+            setRaces(buildRaces(people));
+            setLoading(false);
+          })
+          .catch(() => {
+            // API failed (CORS, network, etc.) — try local fallback
+            fetch('swc_embedded_data.json')
+              .then(r => r.json())
+              .then(compact => {
+                const people = decodeCompactData(compact);
+                setRawPeople(people);
+                setRaces(buildRaces(people));
+                setLoading(false);
+              })
+              .catch(() => { setApiError(true); setLoading(false); });
+          });
+      }, []);
+
+      // Compute state colour map from live race data
+      const colorMap = useMemo(() => {
+        const m = {};
+        Object.keys(STATES).forEach(fips => { m[fips] = getStateColor(races[fips]); });
+        return m;
+      }, [races]);
+
+      // Compute national snapshot stats
+      const stats = useMemo(() => {
+        const relevant = rawPeople.filter(p => {
+          const cat = p.primaryRole?.roleCategory;
+          return cat === 'SENATE' || cat === 'CONGRESS';
+        });
+        const scored = relevant.filter(p => (p.manuallyOverriddenStanceScore ?? p.computedStanceScore) != null);
+        let pro = 0, mixed = 0, anti = 0;
+        scored.forEach(p => {
+          const s = p.manuallyOverriddenStanceScore ?? p.computedStanceScore;
+          if (s >= 75) pro++;
+          else if (s <= 25) anti++;
+          else mixed++;
+        });
+        return { total: scored.length, pro, mixed, anti };
+      }, [rawPeople]);
+
+      function handleStateClick(fips) {
+        setSelectedFips(fips);
+        setMyRaces(null);
+        setPanelMode('state');
+        setMobileOpen(true);
+      }
+
+      function handleAddressResult(result) {
+        const fips = ABBR_TO_FIPS[result.state];
+        setMyRaces(result);
+        setSelectedFips(fips || null);
+        setPanelMode('races');
+        setMobileOpen(true);
+      }
+
+      function handleClose() {
+        setPanelMode(null);
+        setSelectedFips(null);
+        setMyRaces(null);
+        setMobileOpen(false);
+      }
+
+      const sidebarContent = () => {
+        if (panelMode === 'state' && selectedFips)
+          return <StatePanel fips={selectedFips} races={races} onClose={handleClose} />;
+        if (panelMode === 'races' && myRaces)
+          return <MyRacesCard result={myRaces} races={races} onClose={handleClose} />;
+        return <SidebarEmpty totalPoliticians={stats.total} proCount={stats.pro} mixedCount={stats.mixed} antiCount={stats.anti} />;
+      };
+
+      if (loading) {
+        return (
+          <div className="flex flex-col items-center justify-center h-screen bg-[#0D0D1A] gap-4">
+            <ShieldIcon size={48} />
+            <div className="text-[#6B7280] text-sm anim-pulse">Loading race data…</div>
+          </div>
+        );
+      }
+
+      if (apiError) {
+        return (
+          <div className="flex flex-col items-center justify-center h-screen bg-[#0D0D1A] gap-4 p-8 text-center">
+            <ShieldIcon size={48} />
+            <p className="text-[#9CA3AF] text-sm">Map data temporarily unavailable.</p>
+            <CTAButton />
+          </div>
+        );
+      }
+
+      return (
+        <div className="flex flex-col" style={{ height: '100dvh', background: '#0D0D1A', overflow: 'hidden' }}>
+          <Header totalPoliticians={stats.total} />
+
+          {/* ── Desktop layout (md+) ── */}
+          <div className="hidden md:flex flex-1 overflow-hidden">
+            <aside className="w-[380px] flex-shrink-0 flex flex-col border-r border-[#2D2A4A] bg-[#1A1730] overflow-hidden">
+              <AddressSearch onResult={handleAddressResult} />
+              <div className="flex-1 overflow-hidden">
+                {sidebarContent()}
+              </div>
+            </aside>
+
+            <main className="flex-1 relative flex items-center justify-center bg-[#0D0D1A] overflow-hidden">
+              <div className="w-full h-full flex items-center justify-center p-2 md:p-4">
+                <USMap colorMap={colorMap} onStateClick={handleStateClick} selectedFips={selectedFips} races={races} />
+              </div>
+              <MapLegend />
+            </main>
+          </div>
+
+          {/* ── Mobile layout (< md) ── */}
+          <div className="flex md:hidden flex-col flex-1 overflow-hidden" style={{ paddingBottom: '64px' }}>
+            <div className="relative flex-1 min-h-0 flex items-center justify-center">
+              <USMap colorMap={colorMap} onStateClick={handleStateClick} selectedFips={selectedFips} races={races} />
+              <MapLegend />
+            </div>
+            <div className="bg-[#1A1730] border-t border-[#2D2A4A]">
+              <AddressSearch onResult={handleAddressResult} />
+            </div>
+          </div>
+
+          {/* ── Mobile bottom sheet ── */}
+          {mobileOpen && (
+            <div className="md:hidden fixed inset-0 z-40 anim-fade" style={{ background: 'rgba(0,0,0,0.65)' }} onClick={handleClose}>
+              <div className="anim-slide-up absolute bottom-0 left-0 right-0 bg-[#1A1730] rounded-t-2xl" style={{ maxHeight: '82vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+                <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+                  <div className="w-10 h-1 bg-[#2D2A4A] rounded-full" />
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  {sidebarContent()}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Mobile fixed CTA ── */}
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 px-4 py-3 bg-[#0D0D1A] border-t border-[#2D2A4A]">
+            <CTAButton size="lg" block />
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Bootstrap ─────────────────────────────────────────────────────── */
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
