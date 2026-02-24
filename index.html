@@ -41,9 +41,10 @@
     .swc-scroll::-webkit-scrollbar-thumb { background: #2D2A4A; border-radius: 2px; }
     .swc-scroll::-webkit-scrollbar-thumb:hover { background: #F7931A; }
 
-    .state-path { cursor: pointer; transition: opacity 0.12s ease, stroke-width 0.12s ease; }
-    .state-path:hover { opacity: 0.72; }
+    .state-path { cursor: pointer; transition: filter 0.18s ease, stroke-width 0.12s ease; }
+    .state-path:hover { filter: brightness(1.4) drop-shadow(0 0 8px rgba(123, 63, 228, 0.7)); }
     .state-path:focus { outline: none; stroke: #FFAD4D !important; stroke-width: 2.5px !important; }
+    .state-label { pointer-events: none; user-select: none; font-family: 'Inter', sans-serif; font-weight: 700; font-size: 10px; fill: rgba(255, 255, 255, 0.85); text-anchor: middle; dominant-baseline: central; }
 
     @keyframes slideInRight { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes slideInUp { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: translateY(0); } }
@@ -251,14 +252,6 @@
     }
 
     /* State map colour based on candidate crypto stance */
-    function getStateColor(raceData) {
-      if (!raceData) return '#1E1B2E';
-      const hasHouse = Object.keys(raceData.house).length > 0;
-      if (!raceData.senate && !hasHouse) return '#1E1B2E';
-      // Senate race → muted warm orange; House only → muted purple
-      if (raceData.senate) return '#F7931A';
-      return '#7B3FE4';
-    }
 
     /* ================================================================
        Census Geocoder — resolve address → congressional district
@@ -771,24 +764,7 @@
       );
     }
 
-    /* ── Map Legend ─────────────────────────────────────────────────────── */
-    function MapLegend() {
-      const items = [
-        { color: '#F7931A', label: 'Senate Race' },
-        { color: '#7B3FE4', label: 'House Races Only' },
-      ];
-      return (
-        <div className="absolute bottom-3 left-3 bg-[#1A1730]/90 backdrop-blur-sm border border-[#2D2A4A] rounded-xl p-3 pointer-events-none" aria-label="Map color legend" role="img">
-          <div className="text-[#9CA3AF] text-[10px] uppercase tracking-widest font-semibold mb-2">Legend</div>
-          {items.map(({ color, label }) => (
-            <div key={label} className="flex items-center gap-2 mb-1 last:mb-0">
-              <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: color }} />
-              <span className="text-[#D1D5DB] text-xs">{label}</span>
-            </div>
-          ))}
-        </div>
-      );
-    }
+    function MapLegend() { return null; }
 
     /* ── Hover Tooltip ─────────────────────────────────────────────────── */
     function HoverTooltip({ fips, races, x, y }) {
@@ -814,7 +790,7 @@
     }
 
     /* ── US Map (D3 geo + React SVG) ───────────────────────────────────── */
-    function USMap({ colorMap, onStateClick, selectedFips, races }) {
+    function USMap({ onStateClick, selectedFips, races }) {
       const [atlas,   setAtlas]   = useState(null);
       const [mapErr,  setMapErr]  = useState(false);
       const [tooltip, setTooltip] = useState({ fips: null, x: 0, y: 0 });
@@ -862,7 +838,7 @@
                   key={fips}
                   d={pathGen(feat)}
                   className="state-path"
-                  fill={colorMap[fips] || '#1E1B2E'}
+                  fill="#7B3FE4"
                   stroke={isActive ? '#FFAD4D' : '#0D0D1A'}
                   strokeWidth={isActive ? 2.5 : 0.7}
                   tabIndex={0}
@@ -875,6 +851,51 @@
                 />
               );
             })}
+            {/* State abbreviation labels */}
+            {(() => {
+              // Small NE states get pulled out to the right with leader lines
+              const calloutStates = {
+                VT: { x: 920, y: 118 },
+                NH: { x: 920, y: 134 },
+                MA: { x: 920, y: 150 },
+                RI: { x: 920, y: 166 },
+                CT: { x: 920, y: 182 },
+                NJ: { x: 920, y: 198 },
+                DE: { x: 920, y: 214 },
+                MD: { x: 920, y: 230 },
+                DC: { x: 920, y: 246 },
+              };
+              // Nudges for other tricky states
+              const nudges = {
+                FL: [14, 10], LA: [8, -4], MI: [14, 14], CA: [-10, 0],
+                ID: [0, 6], VA: [10, 0], HI: [0, -6],
+              };
+              const labels = [];
+              features.forEach(feat => {
+                const fips = String(feat.id).padStart(2, '0');
+                const abbr = STATES[fips]?.abbr;
+                if (!abbr) return;
+                const centroid = pathGen.centroid(feat);
+                if (!centroid || isNaN(centroid[0])) return;
+                const co = calloutStates[abbr];
+                if (co) {
+                  // Leader line from state centroid to callout label
+                  labels.push(
+                    <g key={'co-' + fips}>
+                      <line x1={centroid[0]} y1={centroid[1]} x2={co.x - 2} y2={co.y} stroke="rgba(255,255,255,0.25)" strokeWidth="0.7" />
+                      <circle cx={centroid[0]} cy={centroid[1]} r="2" fill="rgba(255,255,255,0.4)" />
+                      <text className="state-label" x={co.x} y={co.y} style={{ textAnchor: 'start' }}>{abbr}</text>
+                    </g>
+                  );
+                } else {
+                  const n = nudges[abbr] || [0, 0];
+                  labels.push(
+                    <text key={'lbl-' + fips} className="state-label" x={centroid[0] + n[0]} y={centroid[1] + n[1]}>{abbr}</text>
+                  );
+                }
+              });
+              return labels;
+            })()}
             {mesh && <path d={pathGen(mesh)} fill="none" stroke="#0D0D1A" strokeWidth="0.5" pointerEvents="none" />}
           </svg>
           <HoverTooltip {...tooltip} races={races} />
@@ -956,12 +977,6 @@
           });
       }, []);
 
-      // Compute state colour map from live race data
-      const colorMap = useMemo(() => {
-        const m = {};
-        Object.keys(STATES).forEach(fips => { m[fips] = getStateColor(races[fips]); });
-        return m;
-      }, [races]);
 
       // Compute national snapshot stats
       const stats = useMemo(() => {
@@ -1044,7 +1059,7 @@
 
             <main className="flex-1 relative flex items-center justify-center bg-[#0D0D1A] overflow-hidden">
               <div className="w-full h-full flex items-center justify-center p-2 md:p-4">
-                <USMap colorMap={colorMap} onStateClick={handleStateClick} selectedFips={selectedFips} races={races} />
+                <USMap onStateClick={handleStateClick} selectedFips={selectedFips} races={races} />
               </div>
               <MapLegend />
             </main>
@@ -1053,7 +1068,7 @@
           {/* ── Mobile layout (< md) ── */}
           <div className="flex md:hidden flex-col flex-1 overflow-hidden" style={{ paddingBottom: '64px' }}>
             <div className="relative flex-1 min-h-0 flex items-center justify-center">
-              <USMap colorMap={colorMap} onStateClick={handleStateClick} selectedFips={selectedFips} races={races} />
+              <USMap onStateClick={handleStateClick} selectedFips={selectedFips} races={races} />
               <MapLegend />
             </div>
             <div className="bg-[#1A1730] border-t border-[#2D2A4A]">
