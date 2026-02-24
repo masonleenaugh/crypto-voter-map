@@ -34,16 +34,16 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body, #root { height: 100%; }
-    body { background: #000000; color: #fff; font-family: 'Inter', ui-sans-serif, system-ui; }
+    body { background: #0D0D1A; color: #fff; font-family: 'Inter', ui-sans-serif, system-ui; }
 
     .swc-scroll::-webkit-scrollbar { width: 4px; }
-    .swc-scroll::-webkit-scrollbar-track { background: #111111; }
-    .swc-scroll::-webkit-scrollbar-thumb { background: #222222; border-radius: 2px; }
-    .swc-scroll::-webkit-scrollbar-thumb:hover { background: #FF9500; }
+    .swc-scroll::-webkit-scrollbar-track { background: #1A1730; }
+    .swc-scroll::-webkit-scrollbar-thumb { background: #2D2A4A; border-radius: 2px; }
+    .swc-scroll::-webkit-scrollbar-thumb:hover { background: #F7931A; }
 
     .state-path { cursor: pointer; transition: opacity 0.12s ease, stroke-width 0.12s ease; }
     .state-path:hover { opacity: 0.72; }
-    .state-path:focus { outline: none; stroke: #FFAA33 !important; stroke-width: 2.5px !important; }
+    .state-path:focus { outline: none; stroke: #FFAD4D !important; stroke-width: 2.5px !important; }
 
     @keyframes slideInRight { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes slideInUp { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: translateY(0); } }
@@ -55,11 +55,11 @@
     .anim-pulse       { animation: pulse 1.5s ease infinite; }
 
     /* Address autocomplete dropdown styling */
-    .ac-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 100; background: #111111; border: 1px solid #222222; border-radius: 8px; margin-top: 4px; font-family: 'Inter', sans-serif; overflow: hidden; max-height: 240px; overflow-y: auto; }
-    .ac-item { padding: 8px 12px; color: #fff; border-top: 1px solid #222222; cursor: pointer; font-size: 13px; }
+    .ac-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 100; background: #1A1730; border: 1px solid #2D2A4A; border-radius: 8px; margin-top: 4px; font-family: 'Inter', sans-serif; overflow: hidden; max-height: 240px; overflow-y: auto; }
+    .ac-item { padding: 8px 12px; color: #fff; border-top: 1px solid #2D2A4A; cursor: pointer; font-size: 13px; }
     .ac-item:first-child { border-top: none; }
-    .ac-item:hover, .ac-item.selected { background: #222222; }
-    .ac-item .ac-main { color: #FF9500; font-size: 14px; }
+    .ac-item:hover, .ac-item.selected { background: #2D2A4A; }
+    .ac-item .ac-main { color: #F7931A; font-size: 14px; }
     .ac-item .ac-sub  { color: #9ca3af; font-size: 12px; margin-top: 1px; }
   </style>
 </head>
@@ -181,8 +181,10 @@
       const abbr = person.primaryRole?.primaryState;
       if (!abbr || !SENATE_2026[abbr]) return false;
       const lastName = person.lastName || '';
-      // Match incumbents by last name, or include non-incumbent candidates (challengers)
-      if (person.primaryRole?.status !== 'HELD') return true; // challenger for this seat
+      // Check if this person's term has expired (i.e., they're no longer the current holder)
+      const termExpired = person.primaryRole?.dateEnd && new Date(person.primaryRole.dateEnd) < new Date();
+      // Match incumbents by last name, or include challengers (status !== HELD or expired term)
+      if (person.primaryRole?.status !== 'HELD' || termExpired) return true; // challenger for this seat
       return lastName === SENATE_2026[abbr] || lastName.includes(SENATE_2026[abbr]);
     }
 
@@ -204,7 +206,10 @@
 
         const score = p.manuallyOverriddenStanceScore ?? p.computedStanceScore;
         const lastName = p.lastName || '';
-        const isRetiring = role.status === 'HELD' && RETIRING_SENATORS.has(lastName);
+        // Check if term has expired — API sometimes keeps status=HELD even after dateEnd passes
+        const termExpired = role.dateEnd && new Date(role.dateEnd) < new Date();
+        const isIncumbent = role.status === 'HELD' && !termExpired;
+        const isRetiring = isIncumbent && RETIRING_SENATORS.has(lastName);
         const candidate = {
           id: p.id,
           slug: p.slug,
@@ -214,7 +219,7 @@
           photo: p.profilePictureUrl,
           donationUrl: p.donationUrl,
           officialUrl: p.officialUrl,
-          isIncumbent: role.status === 'HELD',
+          isIncumbent,
           isRetiring,
           isPriority: p.promotedPositioning != null && p.promotedPositioning <= 10,
         };
@@ -247,11 +252,11 @@
 
     /* State map colour based on candidate crypto stance */
     function getStateColor(raceData) {
-      if (!raceData) return '#1A1A1A';
+      if (!raceData) return '#1E1B2E';
       const hasHouse = Object.keys(raceData.house).length > 0;
-      if (!raceData.senate && !hasHouse) return '#1A1A1A';
-      // Senate race → Bitcoin orange; House only → SWC purple
-      if (raceData.senate) return '#FF9500';
+      if (!raceData.senate && !hasHouse) return '#1E1B2E';
+      // Senate race → muted warm orange; House only → muted purple
+      if (raceData.senate) return '#F7931A';
       return '#7B3FE4';
     }
 
@@ -342,11 +347,52 @@
        ================================================================ */
 
     function ShieldIcon({ size = 24 }) {
+      const id = 'swc-s-' + size;
       return (
-        <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
-          <path d="M16 2L4 8v8c0 7.73 5.12 14.95 12 16.73C22.88 30.95 28 23.73 28 16V8L16 2z" fill="#FF9500"/>
-          <path d="M16 2L4 8v8c0 7.73 5.12 14.95 12 16.73V2z" fill="#FFAA33"/>
-          <path d="M12 15l3 3 5-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <svg width={size} height={size * (32/33)} viewBox="0 0 33 32" fill="none" aria-hidden="true">
+          <path d="M24.29 0H16.21V32l3.46-1.18C26.83 28.38 31.84 21.89 32.37 14.34V0h-8.08z" fill={`url(#${id}a)`}/>
+          <path d="M8.12 0H.04v14.34c.54 7.55 5.54 14.04 12.7 16.48L16.21 32V0H8.12z" fill={`url(#${id}b)`}/>
+          <defs>
+            <linearGradient id={`${id}a`} x1="24.29" y1="0" x2="24.29" y2="32" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#E2D0FF"/><stop offset="1" stopColor="#6100FF"/>
+            </linearGradient>
+            <linearGradient id={`${id}b`} x1="8.12" y1="0" x2="8.12" y2="32" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#6C11FF"/><stop offset="1" stopColor="#E2D0FF"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      );
+    }
+
+    function SWCFullLogo({ height = 28 }) {
+      const w = height * (91/32);
+      return (
+        <svg width={w} height={height} viewBox="0 0 91 32" fill="none" aria-hidden="true">
+          <path d="M8.12 0.02H.04v14.34c.54 7.55 5.54 14.04 12.7 16.48L16.21 32V.02H8.12z" fill="url(#swcfl-a)"/>
+          <path d="M24.29.02H16.21V32l3.46-1.18c7.16-2.44 12.17-8.93 12.7-16.48V.02h-8.08z" fill="url(#swcfl-b)"/>
+          <path d="M41.97 9.82c-2.4 0-4-.76-4-2.6h2.19c0 .92.69 1.37 1.84 1.37s1.72-.49 1.72-1.13c0-.71-.47-.85-1.44-1l-1.17-.17c-1.72-.25-2.93-1.05-2.93-2.85 0-1.63 1.4-2.93 3.79-2.93s3.83 1.32 3.85 2.89h-2.19c0-.69-.48-1.19-1.65-1.19s-1.59.51-1.59 1.04c0 .71.49.91 1.4 1.04l1.13.16c1.67.24 3.03.92 3.03 2.83 0 1.9-1.6 3.02-3.95 3.02z" fill="#fff"/>
+          <path d="M49.27 2.1h-2.9V.23h7.95V2.1h-2.89v7.52h-2.16V2.1z" fill="#fff"/>
+          <path d="M60.08 9.62l-.59-1.7h-3.77l-.57 1.7h-2.23l3.48-9.39h2.51l3.48 9.39h-2.31zm-2.51-7.12L56.36 6.06h2.48l-1.24-3.56z" fill="#fff"/>
+          <path d="M63.13 9.62V.23h2.47l3.76 6.12h.01V.23h2.05v9.39h-2.32l-3.87-6.41h-.01v6.41h-2.09z" fill="#fff"/>
+          <path d="M76.63.23c2.88 0 4.55 2.07 4.55 4.69 0 2.63-1.65 4.69-4.55 4.69h-3.76V.23h3.76zm0 1.87h-1.6v5.65h1.6c1.28 0 2.33-.88 2.33-2.45v-.76c0-1.56-1.05-2.44-2.33-2.44z" fill="#fff"/>
+          <path d="M37.75 11.23h2.28l1.63 6.03h.03l1.71-6.05h1.96l1.73 6.08h.03l1.61-6.08h2.09l-2.68 9.4h-2.04l-1.81-6.13h-.03l-1.8 6.13h-1.93l-2.77-9.4z" fill="#fff"/>
+          <path d="M51.58 11.23h2.16v9.39h-2.16v-9.39z" fill="#fff"/>
+          <path d="M57.58 13.1h-2.89v-1.87h7.95v1.87h-2.89v7.52h-2.16V13.1z" fill="#fff"/>
+          <path d="M63.6 11.23h2.16v3.65h3.92v-3.65h2.16v9.39h-2.16v-3.87h-3.92v3.87H63.6v-9.39z" fill="#fff"/>
+          <path d="M42.51 29.92c1.2 0 1.75-.68 1.87-1.4h2.25c-.32 1.97-1.85 3.28-4.04 3.28-2.95 0-4.52-2.12-4.52-4.88s1.59-4.89 4.52-4.89c2.17 0 3.72 1.33 4.01 3.16h-2.28c-.15-.75-.75-1.28-1.81-1.28-1.23 0-2.23.95-2.23 2.65v.71c0 1.71 1 2.65 2.23 2.65z" fill="#fff"/>
+          <path d="M47.62 31.62V22.23h4.44c2.21 0 3.39 1.29 3.39 2.99 0 1.59-1 2.69-2.88 2.83l3.56 3.57h-2.99l-3.36-3.49v3.49h-2.16zm5.64-6.29v-.13c0-.76-.45-1.15-1.27-1.15h-2.21v2.41h2.21c.81 0 1.27-.4 1.27-1.13z" fill="#fff"/>
+          <path d="M58.75 31.62v-3.49l-3.29-5.89h2.33l2.05 3.8h.03l2.05-3.8h2.31l-3.32 5.89v3.49h-2.16z" fill="#fff"/>
+          <path d="M64.95 31.62V22.23h4.43c2.21 0 3.39 1.31 3.39 3.01 0 1.71-1.17 3.01-3.39 3.01h-2.27v3.36h-2.16zm5.63-6.31v-.13c0-.73-.45-1.11-1.27-1.11h-2.2v2.35h2.2c.81 0 1.27-.39 1.27-1.11z" fill="#fff"/>
+          <path d="M76.11 24.1h-2.89v-1.87h7.95v1.87h-2.89v7.52h-2.16V24.1z" fill="#fff"/>
+          <path d="M85.97 31.8c-2.89 0-4.55-2.13-4.55-4.88s1.67-4.89 4.55-4.89c2.88 0 4.55 2.16 4.55 4.89s-1.65 4.88-4.55 4.88zm0-1.88c1.28 0 2.33-.95 2.33-2.65v-.71c0-1.71-1.05-2.65-2.33-2.65s-2.33.95-2.33 2.65v.71c0 1.71 1.05 2.65 2.33 2.65z" fill="#fff"/>
+          <defs>
+            <linearGradient id="swcfl-a" x1="8.12" y1=".02" x2="8.12" y2="32" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#6C11FF"/><stop offset="1" stopColor="#E2D0FF"/>
+            </linearGradient>
+            <linearGradient id="swcfl-b" x1="24.29" y1=".02" x2="24.29" y2="32" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#E2D0FF"/><stop offset="1" stopColor="#6100FF"/>
+            </linearGradient>
+          </defs>
         </svg>
       );
     }
@@ -360,7 +406,7 @@
           rel="noopener noreferrer"
           className={`
             inline-flex items-center justify-center gap-2 font-bold rounded-xl
-            bg-[#FF9500] hover:bg-[#FFAA33] active:bg-[#D47F00]
+            bg-[#F7931A] hover:bg-[#FFAD4D] active:bg-[#E8850F]
             text-white transition-colors duration-150 select-none
             ${pad} ${block ? 'w-full' : ''} ${className}
           `}
@@ -373,7 +419,7 @@
 
     function CloseBtn({ onClick }) {
       return (
-        <button onClick={onClick} className="ml-2 p-1.5 rounded-lg text-[#9CA3AF] hover:text-white hover:bg-[#222222] transition-colors flex-shrink-0" aria-label="Close panel">
+        <button onClick={onClick} className="ml-2 p-1.5 rounded-lg text-[#9CA3AF] hover:text-white hover:bg-[#2D2A4A] transition-colors flex-shrink-0" aria-label="Close panel">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
         </button>
       );
@@ -382,18 +428,19 @@
     /* ── Header ─────────────────────────────────────────────────────────── */
     function Header({ totalPoliticians }) {
       return (
-        <header className="flex items-center justify-between px-4 py-3 border-b border-[#222222] bg-[#000000] z-20 flex-shrink-0">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-[#2D2A4A] bg-[#0D0D1A] z-20 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <ShieldIcon size={32} />
+            <SWCFullLogo height={26} />
+            <div className="w-px h-6 bg-[#2D2A4A] hidden sm:block" />
             <div>
-              <h1 className="text-white font-bold text-base sm:text-lg leading-tight">2026 Crypto Voter Map</h1>
-              <p className="text-[#6B7280] text-xs hidden sm:block">Track every Senate and House race. See where candidates stand on crypto.</p>
+              <h1 className="text-white font-bold text-sm sm:text-base leading-tight">2026 Midterm Map</h1>
+              <p className="text-[#6B7280] text-[10px] hidden sm:block">Track every Senate & House race</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {totalPoliticians > 0 && (
               <span className="text-[#6B7280] text-xs hidden md:block">
-                <span className="text-[#FF9500] font-semibold">{totalPoliticians}</span> politicians tracked
+                <span className="text-[#F7931A] font-semibold">{totalPoliticians}</span> politicians tracked
               </span>
             )}
             <CTAButton size="sm" className="hidden sm:inline-flex" />
@@ -409,12 +456,12 @@
       const profileUrl = c.slug ? `${CONFIG.SWC_PROFILE}/${c.slug}` : null;
 
       return (
-        <div className="flex gap-3 py-3 border-b border-[#222222] last:border-0">
+        <div className="flex gap-3 py-3 border-b border-[#2D2A4A] last:border-0">
           {/* Photo */}
           {c.photo ? (
             <img src={c.photo} alt="" className="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2" style={{ borderColor: rating.color }} onError={e => { e.target.style.display = 'none'; }} />
           ) : (
-            <div className="w-11 h-11 rounded-full bg-[#222222] flex items-center justify-center flex-shrink-0 text-base font-bold text-[#6B7280]">{c.name.charAt(0)}</div>
+            <div className="w-11 h-11 rounded-full bg-[#2D2A4A] flex items-center justify-center flex-shrink-0 text-base font-bold text-[#6B7280]">{c.name.charAt(0)}</div>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -451,7 +498,7 @@
             {isOpen && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">Open Seat</span>}
             {race?.isPriority && <span className="text-[11px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-medium">⭐ Priority</span>}
           </div>
-          <div className="border-t border-[#222222] mb-1" />
+          <div className="border-t border-[#2D2A4A] mb-1" />
           {has ? (
             <>
               {race.candidates.map(c => <CandidateCard key={c.id} c={c} />)}
@@ -477,7 +524,7 @@
 
       return (
         <div className="anim-slide-right flex flex-col h-full overflow-hidden">
-          <div className="flex items-start justify-between p-4 border-b border-[#222222] flex-shrink-0">
+          <div className="flex items-start justify-between p-4 border-b border-[#2D2A4A] flex-shrink-0">
             <div>
               <h2 className="text-white font-bold text-lg">{state.name} — 2026 Races</h2>
             </div>
@@ -498,7 +545,7 @@
                 ) : (
                   <div className="mb-4">
                     <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. Senate</div>
-                    <div className="border-t border-[#222222] mb-1" />
+                    <div className="border-t border-[#2D2A4A] mb-1" />
                     <p className="text-[#6B7280] text-xs italic py-2">This state's Senate seat is not up for election in 2026.</p>
                   </div>
                 )}
@@ -509,7 +556,7 @@
                 )) : (
                   <div className="mb-4">
                     <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House</div>
-                    <div className="border-t border-[#222222] mb-1" />
+                    <div className="border-t border-[#2D2A4A] mb-1" />
                     <p className="text-[#6B7280] text-xs italic py-2">No rated House candidates for {state.name} yet.</p>
                   </div>
                 )}
@@ -517,7 +564,7 @@
             )}
           </div>
 
-          <div className="p-4 border-t border-[#222222] flex-shrink-0">
+          <div className="p-4 border-t border-[#2D2A4A] flex-shrink-0">
             <CTAButton size="lg" block />
           </div>
         </div>
@@ -546,7 +593,7 @@
 
       return (
         <div className="anim-slide-right flex flex-col h-full overflow-hidden">
-          <div className="flex items-start justify-between p-4 border-b border-[#222222] flex-shrink-0">
+          <div className="flex items-start justify-between p-4 border-b border-[#2D2A4A] flex-shrink-0">
             <div>
               <h2 className="text-white font-bold text-lg">📍 Your 2026 Races</h2>
               <p className="text-[#9CA3AF] text-xs mt-0.5">Based on: {formatted || stateAbbr}</p>
@@ -558,7 +605,7 @@
             {data?.senate && (
               <div className="mb-4">
                 <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. Senate — {stateName}</div>
-                <div className="border-t border-[#222222] mb-1" />
+                <div className="border-t border-[#2D2A4A] mb-1" />
                 {data.senate.candidates.map(c => <MiniCandidate key={c.id} c={c} />)}
               </div>
             )}
@@ -566,13 +613,13 @@
             {district && data?.house?.[district] ? (
               <div className="mb-4">
                 <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{district}</div>
-                <div className="border-t border-[#222222] mb-1" />
+                <div className="border-t border-[#2D2A4A] mb-1" />
                 {data.house[district].candidates.map(c => <MiniCandidate key={c.id} c={c} />)}
               </div>
             ) : district && !data?.house?.[district] ? (
               <div className="mb-4">
                 <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{district}</div>
-                <div className="border-t border-[#222222] mb-1" />
+                <div className="border-t border-[#2D2A4A] mb-1" />
                 <p className="text-[#6B7280] text-xs italic py-1">No candidates rated yet for this district. Sign up at Stand With Crypto to stay informed.</p>
               </div>
             ) : !district && data?.house && Object.keys(data.house).length > 0 ? (
@@ -581,7 +628,7 @@
                 {Object.entries(data.house).sort((a, b) => Number(a[0]) - Number(b[0])).map(([dist, race]) => (
                   <div key={dist} className="mb-3">
                     <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{dist}</div>
-                    <div className="border-t border-[#222222] mb-1" />
+                    <div className="border-t border-[#2D2A4A] mb-1" />
                     {race.candidates.map(c => <MiniCandidate key={c.id} c={c} />)}
                   </div>
                 ))}
@@ -593,7 +640,7 @@
             <p className="text-[#4B5563] text-[11px] mt-2">Your address is used only to identify your district and is never stored.</p>
           </div>
 
-          <div className="p-4 border-t border-[#222222] flex-shrink-0">
+          <div className="p-4 border-t border-[#2D2A4A] flex-shrink-0">
             <CTAButton size="lg" block />
           </div>
         </div>
@@ -688,7 +735,7 @@
       }
 
       return (
-        <form onSubmit={handleSubmit} className="p-4 border-b border-[#222222] flex-shrink-0">
+        <form onSubmit={handleSubmit} className="p-4 border-b border-[#2D2A4A] flex-shrink-0">
           <label className="block text-white font-semibold text-sm mb-2">Find your 2026 races</label>
           <div className="flex gap-2 relative" ref={wrapRef}>
             <div className="flex-1 min-w-0 relative">
@@ -700,7 +747,7 @@
                 onFocus={() => { if (suggestions.length > 0) setShowDrop(true); }}
                 placeholder="Start typing your address…"
                 disabled={busy}
-                className="w-full bg-[#000000] border border-[#222222] rounded-lg px-3 py-2 text-sm text-white placeholder-[#4B5563] focus:outline-none focus:border-[#FF9500] transition-colors disabled:opacity-50"
+                className="w-full bg-[#0D0D1A] border border-[#2D2A4A] rounded-lg px-3 py-2 text-sm text-white placeholder-[#4B5563] focus:outline-none focus:border-[#F7931A] transition-colors disabled:opacity-50"
                 aria-label="Enter your street address"
                 autoComplete="off"
                 role="combobox"
@@ -725,7 +772,7 @@
                 </div>
               )}
             </div>
-            <button type="submit" disabled={busy} className="bg-[#FF9500] hover:bg-[#FFAA33] disabled:opacity-40 text-white text-sm font-bold px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
+            <button type="submit" disabled={busy} className="bg-[#F7931A] hover:bg-[#FFAD4D] disabled:opacity-40 text-white text-sm font-bold px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
               {busy ? <span className="anim-pulse inline-block">…</span> : 'Find My Races'}
             </button>
           </div>
@@ -738,11 +785,11 @@
     /* ── Map Legend ─────────────────────────────────────────────────────── */
     function MapLegend() {
       const items = [
-        { color: '#FF9500', label: 'Senate Race' },
+        { color: '#F7931A', label: 'Senate Race' },
         { color: '#7B3FE4', label: 'House Races Only' },
       ];
       return (
-        <div className="absolute bottom-3 left-3 bg-[#111111]/90 backdrop-blur-sm border border-[#222222] rounded-xl p-3 pointer-events-none" aria-label="Map color legend" role="img">
+        <div className="absolute bottom-3 left-3 bg-[#1A1730]/90 backdrop-blur-sm border border-[#2D2A4A] rounded-xl p-3 pointer-events-none" aria-label="Map color legend" role="img">
           <div className="text-[#9CA3AF] text-[10px] uppercase tracking-widest font-semibold mb-2">Legend</div>
           {items.map(({ color, label }) => (
             <div key={label} className="flex items-center gap-2 mb-1 last:mb-0">
@@ -764,7 +811,7 @@
       const houseCount = data ? Object.keys(data.house).length : 0;
 
       return (
-        <div className="fixed z-50 pointer-events-none bg-[#111111] border border-[#222222] rounded-xl px-3 py-2 shadow-2xl text-sm anim-fade" style={{ left: x + 14, top: y - 8, transform: 'translateY(-100%)' }} role="tooltip">
+        <div className="fixed z-50 pointer-events-none bg-[#1A1730] border border-[#2D2A4A] rounded-xl px-3 py-2 shadow-2xl text-sm anim-fade" style={{ left: x + 14, top: y - 8, transform: 'translateY(-100%)' }} role="tooltip">
           <div className="text-white font-semibold">{state.name}</div>
           <div className="text-[#9CA3AF] text-xs mt-0.5">
             {senateCount > 0 && <span>{senateCount} Senate race</span>}
@@ -826,8 +873,8 @@
                   key={fips}
                   d={pathGen(feat)}
                   className="state-path"
-                  fill={colorMap[fips] || '#1A1A1A'}
-                  stroke={isActive ? '#FFAA33' : '#000000'}
+                  fill={colorMap[fips] || '#1E1B2E'}
+                  stroke={isActive ? '#FFAD4D' : '#0D0D1A'}
                   strokeWidth={isActive ? 2.5 : 0.7}
                   tabIndex={0}
                   role="button"
@@ -839,7 +886,7 @@
                 />
               );
             })}
-            {mesh && <path d={pathGen(mesh)} fill="none" stroke="#000000" strokeWidth="0.5" pointerEvents="none" />}
+            {mesh && <path d={pathGen(mesh)} fill="none" stroke="#0D0D1A" strokeWidth="0.5" pointerEvents="none" />}
           </svg>
           <HoverTooltip {...tooltip} races={races} />
         </>
@@ -850,7 +897,7 @@
     function SidebarEmpty({ totalPoliticians, proCount, mixedCount, antiCount }) {
       return (
         <div className="flex flex-col items-center justify-center h-full p-6 text-center gap-4">
-          <ShieldIcon size={48} />
+          <SWCFullLogo height={36} />
           <div>
             <p className="text-white font-semibold mb-1">Explore the 2026 Races</p>
             <p className="text-[#6B7280] text-sm leading-relaxed">
@@ -859,7 +906,7 @@
             </p>
           </div>
           {totalPoliticians > 0 && (
-            <div className="bg-[#222222]/50 rounded-xl p-4 w-full text-left space-y-2">
+            <div className="bg-[#2D2A4A]/50 rounded-xl p-4 w-full text-left space-y-2">
               <div className="text-[#9CA3AF] text-xs uppercase tracking-widest font-semibold">National Snapshot</div>
               <div className="text-white text-2xl font-bold">{totalPoliticians} <span className="text-[#6B7280] text-sm font-normal">politicians rated</span></div>
               {[
@@ -871,7 +918,7 @@
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
                   <span className="text-[#D1D5DB] flex-1">{label}</span>
                   <span className="font-semibold tabular-nums" style={{ color }}>{count}</span>
-                  <div className="w-16 bg-[#222222] rounded-full h-1.5">
+                  <div className="w-16 bg-[#2D2A4A] rounded-full h-1.5">
                     <div className="h-1.5 rounded-full" style={{ background: color, width: `${pct}%` }} />
                   </div>
                 </div>
@@ -976,7 +1023,7 @@
 
       if (loading) {
         return (
-          <div className="flex flex-col items-center justify-center h-screen bg-[#000000] gap-4">
+          <div className="flex flex-col items-center justify-center h-screen bg-[#0D0D1A] gap-4">
             <ShieldIcon size={48} />
             <div className="text-[#6B7280] text-sm anim-pulse">Loading race data…</div>
           </div>
@@ -985,7 +1032,7 @@
 
       if (apiError) {
         return (
-          <div className="flex flex-col items-center justify-center h-screen bg-[#000000] gap-4 p-8 text-center">
+          <div className="flex flex-col items-center justify-center h-screen bg-[#0D0D1A] gap-4 p-8 text-center">
             <ShieldIcon size={48} />
             <p className="text-[#9CA3AF] text-sm">Map data temporarily unavailable.</p>
             <CTAButton />
@@ -994,19 +1041,19 @@
       }
 
       return (
-        <div className="flex flex-col" style={{ height: '100dvh', background: '#000000', overflow: 'hidden' }}>
+        <div className="flex flex-col" style={{ height: '100dvh', background: '#0D0D1A', overflow: 'hidden' }}>
           <Header totalPoliticians={stats.total} />
 
           {/* ── Desktop layout (md+) ── */}
           <div className="hidden md:flex flex-1 overflow-hidden">
-            <aside className="w-[380px] flex-shrink-0 flex flex-col border-r border-[#222222] bg-[#111111] overflow-hidden">
+            <aside className="w-[380px] flex-shrink-0 flex flex-col border-r border-[#2D2A4A] bg-[#1A1730] overflow-hidden">
               <AddressSearch onResult={handleAddressResult} />
               <div className="flex-1 overflow-hidden">
                 {sidebarContent()}
               </div>
             </aside>
 
-            <main className="flex-1 relative flex items-center justify-center bg-[#000000] overflow-hidden">
+            <main className="flex-1 relative flex items-center justify-center bg-[#0D0D1A] overflow-hidden">
               <div className="w-full h-full flex items-center justify-center p-2 md:p-4">
                 <USMap colorMap={colorMap} onStateClick={handleStateClick} selectedFips={selectedFips} races={races} />
               </div>
@@ -1020,7 +1067,7 @@
               <USMap colorMap={colorMap} onStateClick={handleStateClick} selectedFips={selectedFips} races={races} />
               <MapLegend />
             </div>
-            <div className="bg-[#111111] border-t border-[#222222]">
+            <div className="bg-[#1A1730] border-t border-[#2D2A4A]">
               <AddressSearch onResult={handleAddressResult} />
             </div>
           </div>
@@ -1028,9 +1075,9 @@
           {/* ── Mobile bottom sheet ── */}
           {mobileOpen && (
             <div className="md:hidden fixed inset-0 z-40 anim-fade" style={{ background: 'rgba(0,0,0,0.65)' }} onClick={handleClose}>
-              <div className="anim-slide-up absolute bottom-0 left-0 right-0 bg-[#111111] rounded-t-2xl" style={{ maxHeight: '82vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+              <div className="anim-slide-up absolute bottom-0 left-0 right-0 bg-[#1A1730] rounded-t-2xl" style={{ maxHeight: '82vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
                 <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                  <div className="w-10 h-1 bg-[#222222] rounded-full" />
+                  <div className="w-10 h-1 bg-[#2D2A4A] rounded-full" />
                 </div>
                 <div className="flex-1 overflow-hidden">
                   {sidebarContent()}
@@ -1040,7 +1087,7 @@
           )}
 
           {/* ── Mobile fixed CTA ── */}
-          <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 px-4 py-3 bg-[#000000] border-t border-[#222222]">
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 px-4 py-3 bg-[#0D0D1A] border-t border-[#2D2A4A]">
             <CTAButton size="lg" block />
           </div>
         </div>
