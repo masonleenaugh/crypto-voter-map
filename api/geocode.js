@@ -24,7 +24,10 @@ export default async function handler(req, res) {
     }
 
     const stateAbbr = match.addressComponents?.state;
-    const cd = match.geographies?.['Congressional Districts']?.[0];
+    // Census API uses session-numbered keys like "119th Congressional Districts"
+    const geos = match.geographies || {};
+    const cdKey = Object.keys(geos).find(k => k.toLowerCase().includes('congressional'));
+    const cd = cdKey ? geos[cdKey]?.[0] : null;
     const district = cd?.BASENAME ?? cd?.CD ?? null;
 
     return res.status(200).json({
