@@ -34,16 +34,16 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body, #root { height: 100%; }
-    body { background: #0D0D1A; color: #fff; font-family: 'Inter', ui-sans-serif, system-ui; }
+    body { background: #000000; color: #fff; font-family: 'Inter', ui-sans-serif, system-ui; }
 
     .swc-scroll::-webkit-scrollbar { width: 4px; }
-    .swc-scroll::-webkit-scrollbar-track { background: #1A1730; }
-    .swc-scroll::-webkit-scrollbar-thumb { background: #2D2A4A; border-radius: 2px; }
-    .swc-scroll::-webkit-scrollbar-thumb:hover { background: #7B3FE4; }
+    .swc-scroll::-webkit-scrollbar-track { background: #111111; }
+    .swc-scroll::-webkit-scrollbar-thumb { background: #222222; border-radius: 2px; }
+    .swc-scroll::-webkit-scrollbar-thumb:hover { background: #FF9500; }
 
     .state-path { cursor: pointer; transition: opacity 0.12s ease, stroke-width 0.12s ease; }
     .state-path:hover { opacity: 0.72; }
-    .state-path:focus { outline: none; stroke: #9B6FF4 !important; stroke-width: 2.5px !important; }
+    .state-path:focus { outline: none; stroke: #FFAA33 !important; stroke-width: 2.5px !important; }
 
     @keyframes slideInRight { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes slideInUp { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: translateY(0); } }
@@ -55,11 +55,11 @@
     .anim-pulse       { animation: pulse 1.5s ease infinite; }
 
     /* Address autocomplete dropdown styling */
-    .ac-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 100; background: #1A1730; border: 1px solid #2D2A4A; border-radius: 8px; margin-top: 4px; font-family: 'Inter', sans-serif; overflow: hidden; max-height: 240px; overflow-y: auto; }
-    .ac-item { padding: 8px 12px; color: #fff; border-top: 1px solid #2D2A4A; cursor: pointer; font-size: 13px; }
+    .ac-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 100; background: #111111; border: 1px solid #222222; border-radius: 8px; margin-top: 4px; font-family: 'Inter', sans-serif; overflow: hidden; max-height: 240px; overflow-y: auto; }
+    .ac-item { padding: 8px 12px; color: #fff; border-top: 1px solid #222222; cursor: pointer; font-size: 13px; }
     .ac-item:first-child { border-top: none; }
-    .ac-item:hover, .ac-item.selected { background: #2D2A4A; }
-    .ac-item .ac-main { color: #9B6FF4; font-size: 14px; }
+    .ac-item:hover, .ac-item.selected { background: #222222; }
+    .ac-item .ac-main { color: #FF9500; font-size: 14px; }
     .ac-item .ac-sub  { color: #9ca3af; font-size: 12px; margin-top: 1px; }
   </style>
 </head>
@@ -247,24 +247,12 @@
 
     /* State map colour based on candidate crypto stance */
     function getStateColor(raceData) {
-      if (!raceData) return '#1E1B2E';
-      const all = [];
-      if (raceData.senate) all.push(...raceData.senate.candidates);
-      Object.values(raceData.house).forEach(r => all.push(...r.candidates));
-      const rated = all.filter(c => c.score != null);
-      if (rated.length === 0) return '#1E1B2E';
-
-      const max = Math.max(...rated.map(c => c.score));
-      const min = Math.min(...rated.map(c => c.score));
-
-      // Has pro-crypto (A/B) & no anti (F) → purple
-      if (max >= 70 && min >= 40) return '#7B3FE4';
-      // Has anti-crypto (F) & no pro → red (flip opportunity)
-      if (min < 40 && max < 70) return '#EF4444';
-      // Mixed — has both pro and anti
-      if (max >= 70 && min < 40) return '#4B2D8A';
-      if (max >= 40) return '#7B3FE4';
-      return '#EF4444';
+      if (!raceData) return '#1A1A1A';
+      const hasHouse = Object.keys(raceData.house).length > 0;
+      if (!raceData.senate && !hasHouse) return '#1A1A1A';
+      // Senate race → Bitcoin orange; House only → SWC purple
+      if (raceData.senate) return '#FF9500';
+      return '#7B3FE4';
     }
 
     /* ================================================================
@@ -356,8 +344,8 @@
     function ShieldIcon({ size = 24 }) {
       return (
         <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
-          <path d="M16 2L4 8v8c0 7.73 5.12 14.95 12 16.73C22.88 30.95 28 23.73 28 16V8L16 2z" fill="#7B3FE4"/>
-          <path d="M16 2L4 8v8c0 7.73 5.12 14.95 12 16.73V2z" fill="#9B6FF4"/>
+          <path d="M16 2L4 8v8c0 7.73 5.12 14.95 12 16.73C22.88 30.95 28 23.73 28 16V8L16 2z" fill="#FF9500"/>
+          <path d="M16 2L4 8v8c0 7.73 5.12 14.95 12 16.73V2z" fill="#FFAA33"/>
           <path d="M12 15l3 3 5-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       );
@@ -372,7 +360,7 @@
           rel="noopener noreferrer"
           className={`
             inline-flex items-center justify-center gap-2 font-bold rounded-xl
-            bg-[#7B3FE4] hover:bg-[#9B6FF4] active:bg-[#6B2FD4]
+            bg-[#FF9500] hover:bg-[#FFAA33] active:bg-[#D47F00]
             text-white transition-colors duration-150 select-none
             ${pad} ${block ? 'w-full' : ''} ${className}
           `}
@@ -385,7 +373,7 @@
 
     function CloseBtn({ onClick }) {
       return (
-        <button onClick={onClick} className="ml-2 p-1.5 rounded-lg text-[#9CA3AF] hover:text-white hover:bg-[#2D2A4A] transition-colors flex-shrink-0" aria-label="Close panel">
+        <button onClick={onClick} className="ml-2 p-1.5 rounded-lg text-[#9CA3AF] hover:text-white hover:bg-[#222222] transition-colors flex-shrink-0" aria-label="Close panel">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
         </button>
       );
@@ -394,7 +382,7 @@
     /* ── Header ─────────────────────────────────────────────────────────── */
     function Header({ totalPoliticians }) {
       return (
-        <header className="flex items-center justify-between px-4 py-3 border-b border-[#2D2A4A] bg-[#0D0D1A] z-20 flex-shrink-0">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-[#222222] bg-[#000000] z-20 flex-shrink-0">
           <div className="flex items-center gap-3">
             <ShieldIcon size={32} />
             <div>
@@ -405,7 +393,7 @@
           <div className="flex items-center gap-3">
             {totalPoliticians > 0 && (
               <span className="text-[#6B7280] text-xs hidden md:block">
-                <span className="text-[#9B6FF4] font-semibold">{totalPoliticians}</span> politicians tracked
+                <span className="text-[#FF9500] font-semibold">{totalPoliticians}</span> politicians tracked
               </span>
             )}
             <CTAButton size="sm" className="hidden sm:inline-flex" />
@@ -421,12 +409,12 @@
       const profileUrl = c.slug ? `${CONFIG.SWC_PROFILE}/${c.slug}` : null;
 
       return (
-        <div className="flex gap-3 py-3 border-b border-[#2D2A4A] last:border-0">
+        <div className="flex gap-3 py-3 border-b border-[#222222] last:border-0">
           {/* Photo */}
           {c.photo ? (
             <img src={c.photo} alt="" className="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2" style={{ borderColor: rating.color }} onError={e => { e.target.style.display = 'none'; }} />
           ) : (
-            <div className="w-11 h-11 rounded-full bg-[#2D2A4A] flex items-center justify-center flex-shrink-0 text-base font-bold text-[#6B7280]">{c.name.charAt(0)}</div>
+            <div className="w-11 h-11 rounded-full bg-[#222222] flex items-center justify-center flex-shrink-0 text-base font-bold text-[#6B7280]">{c.name.charAt(0)}</div>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -463,7 +451,7 @@
             {isOpen && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">Open Seat</span>}
             {race?.isPriority && <span className="text-[11px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-medium">⭐ Priority</span>}
           </div>
-          <div className="border-t border-[#2D2A4A] mb-1" />
+          <div className="border-t border-[#222222] mb-1" />
           {has ? (
             <>
               {race.candidates.map(c => <CandidateCard key={c.id} c={c} />)}
@@ -489,7 +477,7 @@
 
       return (
         <div className="anim-slide-right flex flex-col h-full overflow-hidden">
-          <div className="flex items-start justify-between p-4 border-b border-[#2D2A4A] flex-shrink-0">
+          <div className="flex items-start justify-between p-4 border-b border-[#222222] flex-shrink-0">
             <div>
               <h2 className="text-white font-bold text-lg">{state.name} — 2026 Races</h2>
             </div>
@@ -510,7 +498,7 @@
                 ) : (
                   <div className="mb-4">
                     <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. Senate</div>
-                    <div className="border-t border-[#2D2A4A] mb-1" />
+                    <div className="border-t border-[#222222] mb-1" />
                     <p className="text-[#6B7280] text-xs italic py-2">This state's Senate seat is not up for election in 2026.</p>
                   </div>
                 )}
@@ -521,7 +509,7 @@
                 )) : (
                   <div className="mb-4">
                     <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House</div>
-                    <div className="border-t border-[#2D2A4A] mb-1" />
+                    <div className="border-t border-[#222222] mb-1" />
                     <p className="text-[#6B7280] text-xs italic py-2">No rated House candidates for {state.name} yet.</p>
                   </div>
                 )}
@@ -529,7 +517,7 @@
             )}
           </div>
 
-          <div className="p-4 border-t border-[#2D2A4A] flex-shrink-0">
+          <div className="p-4 border-t border-[#222222] flex-shrink-0">
             <CTAButton size="lg" block />
           </div>
         </div>
@@ -558,7 +546,7 @@
 
       return (
         <div className="anim-slide-right flex flex-col h-full overflow-hidden">
-          <div className="flex items-start justify-between p-4 border-b border-[#2D2A4A] flex-shrink-0">
+          <div className="flex items-start justify-between p-4 border-b border-[#222222] flex-shrink-0">
             <div>
               <h2 className="text-white font-bold text-lg">📍 Your 2026 Races</h2>
               <p className="text-[#9CA3AF] text-xs mt-0.5">Based on: {formatted || stateAbbr}</p>
@@ -570,7 +558,7 @@
             {data?.senate && (
               <div className="mb-4">
                 <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. Senate — {stateName}</div>
-                <div className="border-t border-[#2D2A4A] mb-1" />
+                <div className="border-t border-[#222222] mb-1" />
                 {data.senate.candidates.map(c => <MiniCandidate key={c.id} c={c} />)}
               </div>
             )}
@@ -578,13 +566,13 @@
             {district && data?.house?.[district] ? (
               <div className="mb-4">
                 <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{district}</div>
-                <div className="border-t border-[#2D2A4A] mb-1" />
+                <div className="border-t border-[#222222] mb-1" />
                 {data.house[district].candidates.map(c => <MiniCandidate key={c.id} c={c} />)}
               </div>
             ) : district && !data?.house?.[district] ? (
               <div className="mb-4">
                 <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{district}</div>
-                <div className="border-t border-[#2D2A4A] mb-1" />
+                <div className="border-t border-[#222222] mb-1" />
                 <p className="text-[#6B7280] text-xs italic py-1">No candidates rated yet for this district. Sign up at Stand With Crypto to stay informed.</p>
               </div>
             ) : !district && data?.house && Object.keys(data.house).length > 0 ? (
@@ -593,7 +581,7 @@
                 {Object.entries(data.house).sort((a, b) => Number(a[0]) - Number(b[0])).map(([dist, race]) => (
                   <div key={dist} className="mb-3">
                     <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{dist}</div>
-                    <div className="border-t border-[#2D2A4A] mb-1" />
+                    <div className="border-t border-[#222222] mb-1" />
                     {race.candidates.map(c => <MiniCandidate key={c.id} c={c} />)}
                   </div>
                 ))}
@@ -605,7 +593,7 @@
             <p className="text-[#4B5563] text-[11px] mt-2">Your address is used only to identify your district and is never stored.</p>
           </div>
 
-          <div className="p-4 border-t border-[#2D2A4A] flex-shrink-0">
+          <div className="p-4 border-t border-[#222222] flex-shrink-0">
             <CTAButton size="lg" block />
           </div>
         </div>
@@ -700,7 +688,7 @@
       }
 
       return (
-        <form onSubmit={handleSubmit} className="p-4 border-b border-[#2D2A4A] flex-shrink-0">
+        <form onSubmit={handleSubmit} className="p-4 border-b border-[#222222] flex-shrink-0">
           <label className="block text-white font-semibold text-sm mb-2">Find your 2026 races</label>
           <div className="flex gap-2 relative" ref={wrapRef}>
             <div className="flex-1 min-w-0 relative">
@@ -712,7 +700,7 @@
                 onFocus={() => { if (suggestions.length > 0) setShowDrop(true); }}
                 placeholder="Start typing your address…"
                 disabled={busy}
-                className="w-full bg-[#0D0D1A] border border-[#2D2A4A] rounded-lg px-3 py-2 text-sm text-white placeholder-[#4B5563] focus:outline-none focus:border-[#7B3FE4] transition-colors disabled:opacity-50"
+                className="w-full bg-[#000000] border border-[#222222] rounded-lg px-3 py-2 text-sm text-white placeholder-[#4B5563] focus:outline-none focus:border-[#FF9500] transition-colors disabled:opacity-50"
                 aria-label="Enter your street address"
                 autoComplete="off"
                 role="combobox"
@@ -737,7 +725,7 @@
                 </div>
               )}
             </div>
-            <button type="submit" disabled={busy} className="bg-[#7B3FE4] hover:bg-[#9B6FF4] disabled:opacity-40 text-white text-sm font-bold px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
+            <button type="submit" disabled={busy} className="bg-[#FF9500] hover:bg-[#FFAA33] disabled:opacity-40 text-white text-sm font-bold px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
               {busy ? <span className="anim-pulse inline-block">…</span> : 'Find My Races'}
             </button>
           </div>
@@ -750,13 +738,11 @@
     /* ── Map Legend ─────────────────────────────────────────────────────── */
     function MapLegend() {
       const items = [
-        { color: '#7B3FE4', label: 'Pro-Crypto Leaning' },
-        { color: '#4B2D8A', label: 'Mixed Stances' },
-        { color: '#EF4444', label: 'Anti-Crypto Leaning' },
-        { color: '#1E1B2E', label: 'No Data Yet' },
+        { color: '#FF9500', label: 'Senate Race' },
+        { color: '#7B3FE4', label: 'House Races Only' },
       ];
       return (
-        <div className="absolute bottom-3 left-3 bg-[#1A1730]/90 backdrop-blur-sm border border-[#2D2A4A] rounded-xl p-3 pointer-events-none" aria-label="Map color legend" role="img">
+        <div className="absolute bottom-3 left-3 bg-[#111111]/90 backdrop-blur-sm border border-[#222222] rounded-xl p-3 pointer-events-none" aria-label="Map color legend" role="img">
           <div className="text-[#9CA3AF] text-[10px] uppercase tracking-widest font-semibold mb-2">Legend</div>
           {items.map(({ color, label }) => (
             <div key={label} className="flex items-center gap-2 mb-1 last:mb-0">
@@ -778,7 +764,7 @@
       const houseCount = data ? Object.keys(data.house).length : 0;
 
       return (
-        <div className="fixed z-50 pointer-events-none bg-[#1A1730] border border-[#2D2A4A] rounded-xl px-3 py-2 shadow-2xl text-sm anim-fade" style={{ left: x + 14, top: y - 8, transform: 'translateY(-100%)' }} role="tooltip">
+        <div className="fixed z-50 pointer-events-none bg-[#111111] border border-[#222222] rounded-xl px-3 py-2 shadow-2xl text-sm anim-fade" style={{ left: x + 14, top: y - 8, transform: 'translateY(-100%)' }} role="tooltip">
           <div className="text-white font-semibold">{state.name}</div>
           <div className="text-[#9CA3AF] text-xs mt-0.5">
             {senateCount > 0 && <span>{senateCount} Senate race</span>}
@@ -840,8 +826,8 @@
                   key={fips}
                   d={pathGen(feat)}
                   className="state-path"
-                  fill={colorMap[fips] || '#1E1B2E'}
-                  stroke={isActive ? '#9B6FF4' : '#0D0D1A'}
+                  fill={colorMap[fips] || '#1A1A1A'}
+                  stroke={isActive ? '#FFAA33' : '#000000'}
                   strokeWidth={isActive ? 2.5 : 0.7}
                   tabIndex={0}
                   role="button"
@@ -853,7 +839,7 @@
                 />
               );
             })}
-            {mesh && <path d={pathGen(mesh)} fill="none" stroke="#0D0D1A" strokeWidth="0.5" pointerEvents="none" />}
+            {mesh && <path d={pathGen(mesh)} fill="none" stroke="#000000" strokeWidth="0.5" pointerEvents="none" />}
           </svg>
           <HoverTooltip {...tooltip} races={races} />
         </>
@@ -873,7 +859,7 @@
             </p>
           </div>
           {totalPoliticians > 0 && (
-            <div className="bg-[#2D2A4A]/50 rounded-xl p-4 w-full text-left space-y-2">
+            <div className="bg-[#222222]/50 rounded-xl p-4 w-full text-left space-y-2">
               <div className="text-[#9CA3AF] text-xs uppercase tracking-widest font-semibold">National Snapshot</div>
               <div className="text-white text-2xl font-bold">{totalPoliticians} <span className="text-[#6B7280] text-sm font-normal">politicians rated</span></div>
               {[
@@ -885,7 +871,7 @@
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
                   <span className="text-[#D1D5DB] flex-1">{label}</span>
                   <span className="font-semibold tabular-nums" style={{ color }}>{count}</span>
-                  <div className="w-16 bg-[#2D2A4A] rounded-full h-1.5">
+                  <div className="w-16 bg-[#222222] rounded-full h-1.5">
                     <div className="h-1.5 rounded-full" style={{ background: color, width: `${pct}%` }} />
                   </div>
                 </div>
@@ -990,7 +976,7 @@
 
       if (loading) {
         return (
-          <div className="flex flex-col items-center justify-center h-screen bg-[#0D0D1A] gap-4">
+          <div className="flex flex-col items-center justify-center h-screen bg-[#000000] gap-4">
             <ShieldIcon size={48} />
             <div className="text-[#6B7280] text-sm anim-pulse">Loading race data…</div>
           </div>
@@ -999,7 +985,7 @@
 
       if (apiError) {
         return (
-          <div className="flex flex-col items-center justify-center h-screen bg-[#0D0D1A] gap-4 p-8 text-center">
+          <div className="flex flex-col items-center justify-center h-screen bg-[#000000] gap-4 p-8 text-center">
             <ShieldIcon size={48} />
             <p className="text-[#9CA3AF] text-sm">Map data temporarily unavailable.</p>
             <CTAButton />
@@ -1008,19 +994,19 @@
       }
 
       return (
-        <div className="flex flex-col" style={{ height: '100dvh', background: '#0D0D1A', overflow: 'hidden' }}>
+        <div className="flex flex-col" style={{ height: '100dvh', background: '#000000', overflow: 'hidden' }}>
           <Header totalPoliticians={stats.total} />
 
           {/* ── Desktop layout (md+) ── */}
           <div className="hidden md:flex flex-1 overflow-hidden">
-            <aside className="w-[380px] flex-shrink-0 flex flex-col border-r border-[#2D2A4A] bg-[#1A1730] overflow-hidden">
+            <aside className="w-[380px] flex-shrink-0 flex flex-col border-r border-[#222222] bg-[#111111] overflow-hidden">
               <AddressSearch onResult={handleAddressResult} />
               <div className="flex-1 overflow-hidden">
                 {sidebarContent()}
               </div>
             </aside>
 
-            <main className="flex-1 relative flex items-center justify-center bg-[#0D0D1A] overflow-hidden">
+            <main className="flex-1 relative flex items-center justify-center bg-[#000000] overflow-hidden">
               <div className="w-full h-full flex items-center justify-center p-2 md:p-4">
                 <USMap colorMap={colorMap} onStateClick={handleStateClick} selectedFips={selectedFips} races={races} />
               </div>
@@ -1034,7 +1020,7 @@
               <USMap colorMap={colorMap} onStateClick={handleStateClick} selectedFips={selectedFips} races={races} />
               <MapLegend />
             </div>
-            <div className="bg-[#1A1730] border-t border-[#2D2A4A]">
+            <div className="bg-[#111111] border-t border-[#222222]">
               <AddressSearch onResult={handleAddressResult} />
             </div>
           </div>
@@ -1042,9 +1028,9 @@
           {/* ── Mobile bottom sheet ── */}
           {mobileOpen && (
             <div className="md:hidden fixed inset-0 z-40 anim-fade" style={{ background: 'rgba(0,0,0,0.65)' }} onClick={handleClose}>
-              <div className="anim-slide-up absolute bottom-0 left-0 right-0 bg-[#1A1730] rounded-t-2xl" style={{ maxHeight: '82vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+              <div className="anim-slide-up absolute bottom-0 left-0 right-0 bg-[#111111] rounded-t-2xl" style={{ maxHeight: '82vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
                 <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                  <div className="w-10 h-1 bg-[#2D2A4A] rounded-full" />
+                  <div className="w-10 h-1 bg-[#222222] rounded-full" />
                 </div>
                 <div className="flex-1 overflow-hidden">
                   {sidebarContent()}
@@ -1054,7 +1040,7 @@
           )}
 
           {/* ── Mobile fixed CTA ── */}
-          <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 px-4 py-3 bg-[#0D0D1A] border-t border-[#2D2A4A]">
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 px-4 py-3 bg-[#000000] border-t border-[#222222]">
             <CTAButton size="lg" block />
           </div>
         </div>
