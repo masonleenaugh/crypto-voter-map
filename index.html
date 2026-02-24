@@ -237,17 +237,29 @@
        Census Geocoder — resolve address → congressional district
        ================================================================ */
     async function censusLookup(address) {
-      const url = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress'
+      // Use our Vercel serverless proxy to avoid CORS issues with Census API
+      const proxyUrl = '/api/geocode?address=' + encodeURIComponent(address);
+      // Fall back to direct Census API for local development
+      const directUrl = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress'
         + `?address=${encodeURIComponent(address)}`
         + '&benchmark=Public_AR_Current&vintage=Current_Current&format=json';
-      const r = await fetch(url);
-      const d = await r.json();
-      const m = d?.result?.addressMatches?.[0];
-      if (!m) return null;
-      const stateAbbr = m.addressComponents?.state;
-      const cd = m.geographies?.['Congressional Districts']?.[0];
-      const dist = cd?.BASENAME ?? cd?.CD ?? null;
-      return { state: stateAbbr, district: dist ? String(parseInt(dist)) : null, formatted: m.matchedAddress };
+
+      try {
+        const r = await fetch(proxyUrl);
+        const d = await r.json();
+        if (d.state) return d;
+        return null;
+      } catch {
+        // Proxy unavailable (local dev) — try direct Census API
+        const r = await fetch(directUrl);
+        const d = await r.json();
+        const m = d?.result?.addressMatches?.[0];
+        if (!m) return null;
+        const stateAbbr = m.addressComponents?.state;
+        const cd = m.geographies?.['Congressional Districts']?.[0];
+        const dist = cd?.BASENAME ?? cd?.CD ?? null;
+        return { state: stateAbbr, district: dist ? String(parseInt(dist)) : null, formatted: m.matchedAddress };
+      }
     }
 
     /*
