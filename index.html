@@ -578,18 +578,7 @@
       const stateName = STATES[fips]?.name ?? stateAbbr;
       const data = races[fips];
 
-      function MiniCandidate({ c }) {
-        const r = getRating(c.score);
-        const p = getParty(c.party);
-        return (
-          <div className="flex items-center gap-2 py-1.5">
-            {c.photo && <img src={c.photo} className="w-7 h-7 rounded-full object-cover" alt="" onError={e => { e.target.style.display = 'none'; }} />}
-            <span className="text-sm font-medium text-white truncate">{c.name}</span>
-            <span className="text-[11px] font-semibold" style={{ color: p.color }}>({p.abbr})</span>
-            <span className="ml-auto text-xs font-bold whitespace-nowrap" style={{ color: r.color }}>{r.grade}</span>
-          </div>
-        );
-      }
+      // Reuse the full CandidateCard for interactivity (profile links, donate, etc.)
 
       return (
         <div className="anim-slide-right flex flex-col h-full overflow-hidden">
@@ -606,7 +595,7 @@
               <div className="mb-4">
                 <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. Senate — {stateName}</div>
                 <div className="border-t border-[#2D2A4A] mb-1" />
-                {data.senate.candidates.map(c => <MiniCandidate key={c.id} c={c} />)}
+                {data.senate.candidates.map(c => <CandidateCard key={c.id} c={c} />)}
               </div>
             )}
 
@@ -614,7 +603,7 @@
               <div className="mb-4">
                 <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{district}</div>
                 <div className="border-t border-[#2D2A4A] mb-1" />
-                {data.house[district].candidates.map(c => <MiniCandidate key={c.id} c={c} />)}
+                {data.house[district].candidates.map(c => <CandidateCard key={c.id} c={c} />)}
               </div>
             ) : district && !data?.house?.[district] ? (
               <div className="mb-4">
@@ -629,7 +618,7 @@
                   <div key={dist} className="mb-3">
                     <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{dist}</div>
                     <div className="border-t border-[#2D2A4A] mb-1" />
-                    {race.candidates.map(c => <MiniCandidate key={c.id} c={c} />)}
+                    {race.candidates.map(c => <CandidateCard key={c.id} c={c} />)}
                   </div>
                 ))}
               </div>
