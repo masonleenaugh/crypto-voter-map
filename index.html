@@ -19,7 +19,8 @@
   <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <style>
     @font-face { font-family: 'Satoshi'; src: url('https://font.download/cdn/webfont/satoshi/Satoshi-Light.woff') format('woff'); font-weight: 300; font-style: normal; font-display: swap; }
@@ -33,26 +34,83 @@
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Satoshi', 'Inter', 'ui-sans-serif', 'system-ui'] },
+          fontFamily: {
+            sans: ['Satoshi', 'Inter', 'ui-sans-serif', 'system-ui'],
+            display: ['Barlow Condensed', 'Satoshi', 'Inter', 'ui-sans-serif', 'system-ui'],
+          },
         },
       },
     };
   </script>
 
   <style>
+    :root {
+      --bm-bg: #060606;
+      --bm-bg-elev: #111111;
+      --bm-panel: rgba(16, 16, 16, 0.88);
+      --bm-panel-strong: rgba(10, 10, 10, 0.96);
+      --bm-border: rgba(255, 255, 255, 0.09);
+      --bm-border-soft: rgba(255, 255, 255, 0.05);
+      --bm-text: #f8f3e8;
+      --bm-muted: #bcae93;
+      --bm-dim: #756956;
+      --bm-orange: #f7931a;
+      --bm-orange-soft: #ffb14a;
+      --swc-violet: #7d4cff;
+      --swc-violet-soft: #c9b6ff;
+      --bm-glow: radial-gradient(circle at top left, rgba(247, 147, 26, 0.18), transparent 35%);
+      --swc-glow: radial-gradient(circle at 80% 0%, rgba(125, 76, 255, 0.16), transparent 30%);
+    }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body, #root { height: 100%; }
-    body { background: #0D0D1A; color: #fff; font-family: 'Satoshi', 'Inter', ui-sans-serif, system-ui; }
+    body {
+      background:
+        linear-gradient(180deg, rgba(247, 147, 26, 0.06), transparent 22%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.03), transparent 40%),
+        var(--swc-glow),
+        var(--bm-glow),
+        var(--bm-bg);
+      color: var(--bm-text);
+      font-family: 'Satoshi', 'Inter', ui-sans-serif, system-ui;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.14;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 26px 26px;
+      mask-image: radial-gradient(circle at center, black 35%, transparent 85%);
+    }
 
     .swc-scroll::-webkit-scrollbar { width: 4px; }
-    .swc-scroll::-webkit-scrollbar-track { background: #1A1730; }
-    .swc-scroll::-webkit-scrollbar-thumb { background: #2D2A4A; border-radius: 2px; }
-    .swc-scroll::-webkit-scrollbar-thumb:hover { background: #F7931A; }
+    .swc-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+    .swc-scroll::-webkit-scrollbar-thumb { background: rgba(247, 147, 26, 0.35); border-radius: 2px; }
+    .swc-scroll::-webkit-scrollbar-thumb:hover { background: var(--bm-orange); }
+    .panel-scroll {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
 
     .state-path { cursor: pointer; transition: filter 0.18s ease, stroke-width 0.12s ease; }
-    .state-path:hover { filter: brightness(1.3) drop-shadow(0 0 8px rgba(247, 147, 26, 0.6)); }
-    .state-path:focus { outline: none; stroke: #FFAD4D !important; stroke-width: 2.5px !important; }
-    .state-label { pointer-events: none; user-select: none; font-family: 'Satoshi', 'Inter', sans-serif; font-weight: 700; font-size: 10px; fill: rgba(255, 255, 255, 0.85); text-anchor: middle; dominant-baseline: central; }
+    .state-path:hover { filter: brightness(1.18) drop-shadow(0 0 10px rgba(247, 147, 26, 0.38)); }
+    .state-path:focus { outline: none; stroke: #FFE0B0 !important; stroke-width: 2.5px !important; }
+    .state-label {
+      pointer-events: none;
+      user-select: none;
+      font-family: 'Barlow Condensed', 'Satoshi', 'Inter', sans-serif;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      font-size: 12px;
+      fill: rgba(248, 243, 232, 0.82);
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
 
     @keyframes slideInRight { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes slideInUp { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: translateY(0); } }
@@ -64,12 +122,68 @@
     .anim-pulse       { animation: pulse 1.5s ease infinite; }
 
     /* Address autocomplete dropdown styling */
-    .ac-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 100; background: #1A1730; border: 1px solid #2D2A4A; border-radius: 8px; margin-top: 4px; font-family: 'Inter', sans-serif; overflow: hidden; max-height: 240px; overflow-y: auto; }
-    .ac-item { padding: 8px 12px; color: #fff; border-top: 1px solid #2D2A4A; cursor: pointer; font-size: 13px; }
+    .ac-dropdown {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 6px);
+      z-index: 100;
+      background: rgba(10, 10, 10, 0.98);
+      border: 1px solid var(--bm-border);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+      border-radius: 14px;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+      max-height: 240px;
+      overflow-y: auto;
+      backdrop-filter: blur(14px);
+    }
+    .ac-item { padding: 10px 12px; color: var(--bm-text); border-top: 1px solid var(--bm-border-soft); cursor: pointer; font-size: 13px; }
     .ac-item:first-child { border-top: none; }
-    .ac-item:hover, .ac-item.selected { background: #2D2A4A; }
-    .ac-item .ac-main { color: #F7931A; font-size: 14px; }
-    .ac-item .ac-sub  { color: #9ca3af; font-size: 12px; margin-top: 1px; }
+    .ac-item:hover, .ac-item.selected { background: rgba(247, 147, 26, 0.12); }
+    .ac-item .ac-main { color: var(--bm-orange-soft); font-size: 14px; }
+    .ac-item .ac-sub  { color: var(--bm-muted); font-size: 12px; margin-top: 1px; }
+
+    .editorial-panel {
+      background: linear-gradient(180deg, rgba(18, 18, 18, 0.94), rgba(8, 8, 8, 0.98));
+      border: 1px solid var(--bm-border);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.26);
+      backdrop-filter: blur(18px);
+    }
+    .map-frame {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at 28% 20%, rgba(247, 147, 26, 0.18), transparent 28%),
+        radial-gradient(circle at 78% 18%, rgba(125, 76, 255, 0.16), transparent 25%),
+        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)),
+        #0a0a0a;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 24px 60px rgba(0,0,0,0.28);
+    }
+    .map-frame::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.16;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,0.7), transparent 90%);
+    }
+    .candidate-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid var(--bm-border-soft);
+      border-radius: 18px;
+    }
+    .eyebrow {
+      font-family: 'Barlow Condensed', 'Satoshi', sans-serif;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -125,18 +239,20 @@
 
     /* ================================================================
        Rating display logic (letter grades)
-       Score 90–100  A  Strongly Pro-Crypto  #22C55E
-       Score 70–89   B  Pro-Crypto           #84CC16
-       Score 40–69   C  Neutral              #F97316
-       Score 0–39    F  Anti-Crypto          #EF4444
+       Score 90–100  A  Very Pro-Crypto         #22C55E
+       Score 70–89   B  Somewhat Pro-Crypto     #84CC16
+       Score 50–69   C  Neutral on Crypto       #9CA3AF
+       Score 25–49   D  Somewhat Against Crypto #F97316
+       Score 0–24    F  Very Anti-Crypto        #EF4444
        null          —  Not Yet Rated        #9CA3AF
        ================================================================ */
     function getRating(score) {
       if (score == null) return { label: 'Not Yet Rated', grade: '—', color: '#9CA3AF', badge: '—' };
-      if (score >= 90)   return { label: 'Strongly Pro-Crypto', grade: 'A',  color: '#22C55E', badge: '🅰️' };
-      if (score >= 70)   return { label: 'Pro-Crypto',          grade: 'B',  color: '#84CC16', badge: '🅱️' };
-      if (score >= 40)   return { label: 'Neutral',             grade: 'C',  color: '#F97316', badge: '©️' };
-      return                     { label: 'Anti-Crypto',        grade: 'F',  color: '#EF4444', badge: '🅵' };
+      if (score >= 90)   return { label: 'Very Pro-Crypto',         grade: 'A', color: '#22C55E', badge: 'A' };
+      if (score >= 70)   return { label: 'Somewhat Pro-Crypto',     grade: 'B', color: '#84CC16', badge: 'B' };
+      if (score >= 50)   return { label: 'Neutral on Crypto',       grade: 'C', color: '#9CA3AF', badge: 'C' };
+      if (score >= 25)   return { label: 'Somewhat Against Crypto', grade: 'D', color: '#F97316', badge: 'D' };
+      return                     { label: 'Very Anti-Crypto',        grade: 'F', color: '#EF4444', badge: 'F' };
     }
 
     const PARTY_STYLE = {
@@ -313,12 +429,13 @@
 
     /*
      * Decode compact fallback data format back to API-like objects.
-     * Compact: [name, party, score, state, role, dist, incumbent, senateRun, slug, photo]
+     * Compact: [name, party, score, state, role, dist, incumbent, senateRun, slug, photo, visible]
      * senateRun: state abbr if this House member is also running for Senate, else 0
+     * visible: 1=show, 0=hidden (candidate no longer on SWC site)
      */
     function decodeCompactData(arr) {
       const PARTY_MAP = { R: 'US_REPUBLICAN', D: 'US_DEMOCRAT', I: 'US_INDEPENDENT' };
-      return arr.map(r => {
+      return arr.filter(r => r[10] !== 0).map(r => {
         const roles = [];
         if (r[7] && typeof r[7] === 'string') {
           roles.push({ roleCategory: 'SENATE', status: 'RUNNING_FOR', primaryState: r[7], primaryDistrict: '' });
@@ -432,9 +549,11 @@
           target="_blank"
           rel="noopener noreferrer"
           className={`
-            inline-flex items-center justify-center gap-2 font-bold rounded-xl
-            bg-[#F7931A] hover:bg-[#FFAD4D] active:bg-[#E8850F]
-            text-white transition-colors duration-150 select-none
+            inline-flex items-center justify-center gap-2 font-bold rounded-full
+            border border-[rgba(255,255,255,0.08)]
+            bg-[linear-gradient(135deg,rgba(247,147,26,1),rgba(255,177,74,1))]
+            text-[#130d04] shadow-[0_16px_30px_rgba(247,147,26,0.18)]
+            transition-all duration-150 select-none hover:brightness-105 hover:-translate-y-[1px]
             ${pad} ${block ? 'w-full' : ''} ${className}
           `}
         >
@@ -446,31 +565,44 @@
 
     function CloseBtn({ onClick }) {
       return (
-        <button onClick={onClick} className="ml-2 p-1.5 rounded-lg text-[#9CA3AF] hover:text-white hover:bg-[#2D2A4A] transition-colors flex-shrink-0" aria-label="Close panel">
+        <button onClick={onClick} className="ml-2 p-2 rounded-full text-[var(--bm-muted)] hover:text-[var(--bm-text)] hover:bg-[rgba(255,255,255,0.06)] transition-colors flex-shrink-0" aria-label="Close panel">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
         </button>
       );
     }
 
     /* ── Header ─────────────────────────────────────────────────────────── */
-    function Header({ totalPoliticians }) {
+    function Header({ senateRaceCount, houseRaceCount }) {
       return (
-        <header className="flex items-center justify-between px-4 py-3 border-b border-[#2D2A4A] bg-[#0D0D1A] z-20 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <SWCFullLogo height={26} />
-            <div className="w-px h-6 bg-[#2D2A4A] hidden sm:block" />
-            <div>
-              <h1 className="text-white font-bold text-sm sm:text-base leading-tight">2026 Midterm Map</h1>
-              <p className="text-[#6B7280] text-[10px] hidden sm:block">Track every Senate & House race</p>
+        <header className="border-b border-[var(--bm-border)] bg-[rgba(6,6,6,0.88)] backdrop-blur-xl z-20 flex-shrink-0">
+          <div className="px-4 py-4 md:px-6 md:py-5 flex items-center justify-between gap-4">
+            <div className="flex items-start gap-4 min-w-0">
+              <div className="hidden sm:flex h-11 w-11 items-center justify-center rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[linear-gradient(180deg,rgba(247,147,26,0.14),rgba(125,76,255,0.12))]">
+                <ShieldIcon size={24} />
+              </div>
+              <div className="min-w-0">
+                <div className="eyebrow text-[11px] text-[var(--bm-orange-soft)]">Bitcoin Magazine</div>
+                <h1 className="font-display text-[26px] md:text-[34px] uppercase leading-none tracking-[0.02em] text-[var(--bm-text)]">2026 Voter Map</h1>
+                <p className="text-[var(--bm-muted)] text-xs md:text-sm mt-1 max-w-[44rem]">
+                  Powered by Stand With Crypto
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {totalPoliticians > 0 && (
-              <span className="text-[#6B7280] text-xs hidden md:block">
-                <span className="text-[#F7931A] font-semibold">{totalPoliticians}</span> politicians tracked
-              </span>
-            )}
-            <CTAButton size="sm" className="hidden sm:inline-flex" />
+            <div className="flex items-center gap-3 flex-shrink-0">
+              {(senateRaceCount > 0 || houseRaceCount > 0) && (
+                <div className="hidden lg:flex flex-col items-end">
+                  <span className="eyebrow text-[10px] text-[var(--bm-dim)]">Tracked</span>
+                  <span className="text-[var(--bm-text)] text-sm text-right">
+                    <span className="text-[var(--bm-orange)] font-semibold">{senateRaceCount}</span> Senate Races
+                    {' '}
+                    <span className="text-[var(--bm-muted)]">·</span>
+                    {' '}
+                    <span className="text-[var(--bm-orange)] font-semibold">{houseRaceCount}</span> House Races
+                  </span>
+                </div>
+              )}
+              <CTAButton size="sm" className="hidden sm:inline-flex" />
+            </div>
           </div>
         </header>
       );
@@ -483,31 +615,31 @@
       const profileUrl = c.slug ? `${CONFIG.SWC_PROFILE}/${c.slug}` : null;
 
       return (
-        <div className="flex gap-3 py-3 border-b border-[#2D2A4A] last:border-0">
+        <div className="candidate-card flex gap-3 p-3 md:p-3.5 mb-3">
           {/* Photo */}
           {c.photo ? (
-            <img src={c.photo} alt="" className="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2" style={{ borderColor: rating.color }} onError={e => { e.target.style.display = 'none'; }} />
+            <img src={c.photo} alt="" className="w-12 h-12 rounded-2xl object-cover flex-shrink-0 border" style={{ borderColor: rating.color + '66' }} onError={e => { e.target.style.display = 'none'; }} />
           ) : (
-            <div className="w-11 h-11 rounded-full bg-[#2D2A4A] flex items-center justify-center flex-shrink-0 text-base font-bold text-[#6B7280]">{c.name.charAt(0)}</div>
+            <div className="w-12 h-12 rounded-2xl bg-[rgba(255,255,255,0.06)] flex items-center justify-center flex-shrink-0 text-base font-bold text-[var(--bm-muted)]">{c.name.charAt(0)}</div>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-white text-sm font-semibold truncate">{c.name}</span>
-              <span className="text-[11px] px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: party.color + '22', color: party.color }}>({party.abbr})</span>
+              <span className="text-[var(--bm-text)] text-sm font-semibold truncate">{c.name}</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold border" style={{ backgroundColor: party.color + '14', color: party.color, borderColor: party.color + '2e' }}>({party.abbr})</span>
             </div>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <span className="text-[#6B7280] text-xs">{c.isRetiring ? 'Retiring · Not Running' : c.isIncumbent ? 'Incumbent' : 'Challenger'}</span>
-              {c.isRetiring && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">Open Seat</span>}
+              <span className="text-[var(--bm-muted)] text-xs">{c.isRetiring ? 'Retiring · Not Running' : c.isIncumbent ? 'Incumbent' : 'Challenger'}</span>
+              {c.isRetiring && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/16 text-amber-300 font-medium border border-amber-500/20">Open Seat</span>}
 
             </div>
-            <div className="mt-1">
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: rating.color + '22', color: rating.color }}>
+            <div className="mt-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border" style={{ backgroundColor: rating.color + '12', color: rating.color, borderColor: rating.color + '30' }}>
                 <span className="font-bold text-sm">{rating.grade}</span> {rating.label}
               </span>
             </div>
-            <div className="flex items-center gap-3 mt-1.5">
-              {profileUrl && <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#9B6FF4] hover:text-[#7B3FE4] transition-colors">View on SWC ↗</a>}
-              {c.donationUrl && <a href={c.donationUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#9B6FF4] hover:text-[#7B3FE4] transition-colors">Donate ↗</a>}
+            <div className="flex items-center gap-3 mt-2">
+              {profileUrl && <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[var(--swc-violet-soft)] hover:text-white transition-colors">View on SWC ↗</a>}
+              {c.donationUrl && <a href={c.donationUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[var(--bm-orange-soft)] hover:text-white transition-colors">Donate ↗</a>}
             </div>
           </div>
         </div>
@@ -519,19 +651,19 @@
       const has = race?.candidates?.length > 0;
       const isOpen = race?.candidates?.some(c => c.isRetiring);
       return (
-        <div className="mb-4">
+        <div className="mb-5">
           <div className="flex items-center gap-2 mb-1">
-            <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold">{title}</div>
-            {isOpen && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">Open Seat</span>}
+            <div className="eyebrow text-[11px] text-[var(--bm-muted)]">{title}</div>
+            {isOpen && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/16 text-amber-300 font-medium border border-amber-500/20">Open Seat</span>}
           </div>
-          <div className="border-t border-[#2D2A4A] mb-1" />
+          <div className="border-t border-[var(--bm-border)] mb-2" />
           {has ? (
             <>
               {race.candidates.map(c => <CandidateCard key={c.id} c={c} />)}
-              {race.candidates.length === 1 && <p className="text-[#6B7280] text-xs italic mt-1">Challenger ratings coming soon.</p>}
+              {race.candidates.length === 1 && <p className="text-[var(--bm-muted)] text-xs italic mt-1">Challenger ratings coming soon.</p>}
             </>
           ) : (
-            <p className="text-[#6B7280] text-xs italic py-2">No candidates rated yet for this race.</p>
+            <p className="text-[var(--bm-muted)] text-xs italic py-2">No candidates rated yet for this race.</p>
           )}
         </div>
       );
@@ -550,17 +682,19 @@
 
       return (
         <div className="anim-slide-right flex flex-col h-full overflow-hidden">
-          <div className="flex items-start justify-between p-4 border-b border-[#2D2A4A] flex-shrink-0">
+          <div className="flex items-start justify-between p-5 border-b border-[var(--bm-border)] flex-shrink-0">
             <div>
-              <h2 className="text-white font-bold text-lg">{state.name} — 2026 Races</h2>
+              <div className="eyebrow text-[11px] text-[var(--bm-orange-soft)]">State Briefing</div>
+              <h2 className="font-display text-[28px] uppercase leading-none text-[var(--bm-text)] mt-1">{state.name}</h2>
+              <p className="text-[var(--bm-muted)] text-xs mt-1">All 2026 Senate and House Races</p>
             </div>
             <CloseBtn onClick={onClose} />
           </div>
 
-          <div ref={scrollRef} className="flex-1 overflow-y-auto swc-scroll px-4 py-3">
+          <div ref={scrollRef} className="flex-1 min-h-0 panel-scroll swc-scroll px-5 py-4">
             {!data ? (
               <div className="text-center py-10">
-                <p className="text-[#9CA3AF] text-sm mb-4">No rated candidates yet for {state.name}. Sign up at Stand With Crypto to stay informed.</p>
+                <p className="text-[var(--bm-muted)] text-sm mb-4">No rated candidates yet for {state.name}. Sign up at Stand With Crypto to stay informed.</p>
                 <CTAButton size="sm" />
               </div>
             ) : (
@@ -570,9 +704,9 @@
                   <RaceSection title={`U.S. Senate — ${state.name}`} race={data.senate} />
                 ) : (
                   <div className="mb-4">
-                    <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. Senate</div>
-                    <div className="border-t border-[#2D2A4A] mb-1" />
-                    <p className="text-[#6B7280] text-xs italic py-2">This state's Senate seat is not up for election in 2026.</p>
+                    <div className="eyebrow text-[11px] text-[var(--bm-muted)] mb-1">U.S. Senate</div>
+                    <div className="border-t border-[var(--bm-border)] mb-1" />
+                    <p className="text-[var(--bm-muted)] text-xs italic py-2">This state's Senate seat is not up for election in 2026.</p>
                   </div>
                 )}
 
@@ -581,16 +715,16 @@
                   <RaceSection key={dist} title={`U.S. House — ${state.abbr}-${dist === 'AL' ? 'At Large' : dist}`} race={data.house[dist]} />
                 )) : (
                   <div className="mb-4">
-                    <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House</div>
-                    <div className="border-t border-[#2D2A4A] mb-1" />
-                    <p className="text-[#6B7280] text-xs italic py-2">No rated House candidates for {state.name} yet.</p>
+                    <div className="eyebrow text-[11px] text-[var(--bm-muted)] mb-1">U.S. House</div>
+                    <div className="border-t border-[var(--bm-border)] mb-1" />
+                    <p className="text-[var(--bm-muted)] text-xs italic py-2">No rated House candidates for {state.name} yet.</p>
                   </div>
                 )}
               </>
             )}
           </div>
 
-          <div className="p-4 border-t border-[#2D2A4A] flex-shrink-0">
+          <div className="p-5 border-t border-[var(--bm-border)] flex-shrink-0">
             <CTAButton size="lg" block />
           </div>
         </div>
@@ -608,54 +742,55 @@
 
       return (
         <div className="anim-slide-right flex flex-col h-full overflow-hidden">
-          <div className="flex items-start justify-between p-4 border-b border-[#2D2A4A] flex-shrink-0">
+          <div className="flex items-start justify-between p-5 border-b border-[var(--bm-border)] flex-shrink-0">
             <div>
-              <h2 className="text-white font-bold text-lg">📍 Your 2026 Races</h2>
-              <p className="text-[#9CA3AF] text-xs mt-0.5">Based on: {formatted || stateAbbr}</p>
+              <div className="eyebrow text-[11px] text-[var(--bm-orange-soft)]">Personal Lookup</div>
+              <h2 className="font-display text-[28px] uppercase leading-none text-[var(--bm-text)] mt-1">Your 2026 Races</h2>
+              <p className="text-[var(--bm-muted)] text-xs mt-1">Based on: {formatted || stateAbbr}</p>
             </div>
             <CloseBtn onClick={onClose} />
           </div>
 
-          <div className="flex-1 overflow-y-auto swc-scroll px-4 py-3">
+          <div className="flex-1 min-h-0 panel-scroll swc-scroll px-5 py-4">
             {data?.senate && (
               <div className="mb-4">
-                <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. Senate — {stateName}</div>
-                <div className="border-t border-[#2D2A4A] mb-1" />
+                <div className="eyebrow text-[11px] text-[var(--bm-muted)] mb-1">U.S. Senate — {stateName}</div>
+                <div className="border-t border-[var(--bm-border)] mb-1" />
                 {data.senate.candidates.map(c => <CandidateCard key={c.id} c={c} />)}
               </div>
             )}
 
             {district && data?.house?.[district] ? (
               <div className="mb-4">
-                <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{district}</div>
-                <div className="border-t border-[#2D2A4A] mb-1" />
+                <div className="eyebrow text-[11px] text-[var(--bm-muted)] mb-1">U.S. House — {stateAbbr}-{district}</div>
+                <div className="border-t border-[var(--bm-border)] mb-1" />
                 {data.house[district].candidates.map(c => <CandidateCard key={c.id} c={c} />)}
               </div>
             ) : district && !data?.house?.[district] ? (
               <div className="mb-4">
-                <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{district}</div>
-                <div className="border-t border-[#2D2A4A] mb-1" />
-                <p className="text-[#6B7280] text-xs italic py-1">No candidates rated yet for this district. Sign up at Stand With Crypto to stay informed.</p>
+                <div className="eyebrow text-[11px] text-[var(--bm-muted)] mb-1">U.S. House — {stateAbbr}-{district}</div>
+                <div className="border-t border-[var(--bm-border)] mb-1" />
+                <p className="text-[var(--bm-muted)] text-xs italic py-1">No candidates rated yet for this district. Sign up at Stand With Crypto to stay informed.</p>
               </div>
             ) : !district && data?.house && Object.keys(data.house).length > 0 ? (
               <div className="mb-4">
-                <p className="text-[#9CA3AF] text-[11px] italic mb-2">Couldn't pinpoint your exact district — showing all House races in {stateName}.</p>
+                <p className="text-[var(--bm-muted)] text-[11px] italic mb-2">Couldn't pinpoint your exact district — showing all House races in {stateName}.</p>
                 {Object.entries(data.house).sort((a, b) => Number(a[0]) - Number(b[0])).map(([dist, race]) => (
                   <div key={dist} className="mb-3">
-                    <div className="text-[#6B7280] text-[11px] uppercase tracking-widest font-semibold mb-1">U.S. House — {stateAbbr}-{dist}</div>
-                    <div className="border-t border-[#2D2A4A] mb-1" />
+                    <div className="eyebrow text-[11px] text-[var(--bm-muted)] mb-1">U.S. House — {stateAbbr}-{dist}</div>
+                    <div className="border-t border-[var(--bm-border)] mb-1" />
                     {race.candidates.map(c => <CandidateCard key={c.id} c={c} />)}
                   </div>
                 ))}
               </div>
             ) : !data?.senate && !data?.house ? (
-              <p className="text-[#9CA3AF] text-sm py-4">No rated candidates in your area yet. Sign up to be notified.</p>
+              <p className="text-[var(--bm-muted)] text-sm py-4">No rated candidates in your area yet. Sign up to be notified.</p>
             ) : null}
 
-            <p className="text-[#4B5563] text-[11px] mt-2">Your address is used only to identify your district and is never stored.</p>
+            <p className="text-[var(--bm-dim)] text-[11px] mt-2">Your address is used only to identify your district and is never stored.</p>
           </div>
 
-          <div className="p-4 border-t border-[#2D2A4A] flex-shrink-0">
+          <div className="p-5 border-t border-[var(--bm-border)] flex-shrink-0">
             <CTAButton size="lg" block />
           </div>
         </div>
@@ -750,8 +885,9 @@
       }
 
       return (
-        <form onSubmit={handleSubmit} className="p-4 border-b border-[#2D2A4A] flex-shrink-0">
-          <label className="block text-white font-semibold text-sm mb-2">Find your 2026 races</label>
+        <form onSubmit={handleSubmit} className="p-5 border-b border-[var(--bm-border)] flex-shrink-0">
+          <div className="eyebrow text-[11px] text-[var(--bm-orange-soft)] mb-2">Lookup</div>
+          <label className="block text-[var(--bm-text)] font-semibold text-sm mb-2">Find your 2026 races</label>
           <div className="flex gap-2 relative" ref={wrapRef}>
             <div className="flex-1 min-w-0 relative">
               <input
@@ -762,7 +898,7 @@
                 onFocus={() => { if (suggestions.length > 0) setShowDrop(true); }}
                 placeholder="Start typing your address…"
                 disabled={busy}
-                className="w-full bg-[#0D0D1A] border border-[#2D2A4A] rounded-lg px-3 py-2 text-sm text-white placeholder-[#4B5563] focus:outline-none focus:border-[#F7931A] transition-colors disabled:opacity-50"
+                className="w-full bg-[rgba(255,255,255,0.03)] border border-[var(--bm-border)] rounded-2xl px-4 py-3 text-sm text-[var(--bm-text)] placeholder-[var(--bm-dim)] focus:outline-none focus:border-[var(--bm-orange)] transition-colors disabled:opacity-50"
                 aria-label="Enter your street address"
                 autoComplete="off"
                 role="combobox"
@@ -787,12 +923,12 @@
                 </div>
               )}
             </div>
-            <button type="submit" disabled={busy} className="bg-[#F7931A] hover:bg-[#FFAD4D] disabled:opacity-40 text-white text-sm font-bold px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
+            <button type="submit" disabled={busy} className="bg-[var(--bm-orange)] hover:bg-[var(--bm-orange-soft)] disabled:opacity-40 text-[#130d04] text-sm font-bold px-4 py-3 rounded-2xl transition-colors whitespace-nowrap">
               {busy ? <span className="anim-pulse inline-block">…</span> : 'Find My Races'}
             </button>
           </div>
           {error && <p className="text-[#F87171] text-xs mt-2" role="alert">{error}</p>}
-          <p className="text-[#4B5563] text-[11px] mt-1.5">Your address is used only to identify your district and is never stored.</p>
+          <p className="text-[var(--bm-dim)] text-[11px] mt-1.5">Your address is used only to identify your district and is never stored.</p>
         </form>
       );
     }
@@ -809,15 +945,15 @@
       const houseCount = data ? Object.keys(data.house).length : 0;
 
       return (
-        <div className="fixed z-50 pointer-events-none bg-[#1A1730] border border-[#2D2A4A] rounded-xl px-3 py-2 shadow-2xl text-sm anim-fade" style={{ left: x + 14, top: y - 8, transform: 'translateY(-100%)' }} role="tooltip">
-          <div className="text-white font-semibold">{state.name}</div>
-          <div className="text-[#9CA3AF] text-xs mt-0.5">
+        <div className="fixed z-50 pointer-events-none rounded-2xl px-3 py-2 shadow-2xl text-sm anim-fade editorial-panel" style={{ left: x + 14, top: y - 8, transform: 'translateY(-100%)' }} role="tooltip">
+          <div className="text-[var(--bm-text)] font-semibold">{state.name}</div>
+          <div className="text-[var(--bm-muted)] text-xs mt-0.5">
             {senateCount > 0 && <span>{senateCount} Senate race</span>}
             {senateCount > 0 && houseCount > 0 && <span> · </span>}
             {houseCount > 0 && <span>{houseCount} House race{houseCount !== 1 ? 's' : ''}</span>}
             {senateCount === 0 && houseCount === 0 && <span>No rated races</span>}
           </div>
-          <div className="text-[#4B5563] text-[11px] mt-1">Click to explore →</div>
+          <div className="text-[var(--bm-dim)] text-[11px] mt-1">Click to explore →</div>
         </div>
       );
     }
@@ -899,8 +1035,8 @@
               };
               // Nudges for other tricky states
               const nudges = {
-                FL: [14, 10], LA: [8, -4], MI: [14, 14], CA: [-10, 0],
-                ID: [0, 6], VA: [10, 0], HI: [0, -6],
+                FL: [14, 10], LA: [-18, -2], MI: [14, 14], CA: [-10, 0],
+                ID: [0, 6], VA: [10, 0], HI: [18, 12],
               };
               const labels = [];
               features.forEach(feat => {
@@ -938,36 +1074,35 @@
     /* ── Sidebar empty state ───────────────────────────────────────────── */
     function SidebarEmpty({ totalPoliticians, proCount, mixedCount, antiCount }) {
       return (
-        <div className="flex flex-col items-center justify-center h-full p-6 text-center gap-4">
-          <SWCFullLogo height={36} />
+        <div className="flex flex-col justify-between h-full p-5 md:p-6 gap-5">
           <div>
-            <p className="text-white font-semibold mb-1">Explore the 2026 Races</p>
-            <p className="text-[#6B7280] text-sm leading-relaxed">
-              Click any state on the map to see which candidates support crypto,
-              or enter your address above to find your own races.
+            <div className="eyebrow text-[11px] text-[var(--bm-orange-soft)] mb-2">Field Guide</div>
+            <h2 className="font-display text-[34px] uppercase leading-none text-[var(--bm-text)]">The 2026 Bitcoin Vote</h2>
+            <p className="text-[var(--bm-muted)] text-sm leading-relaxed mt-3">
+              Explore the races shaping U.S. crypto policy in the 2026 cycle. Click a state to scan the field, or use your address to jump straight into your own ballot.
             </p>
           </div>
           {totalPoliticians > 0 && (
-            <div className="bg-[#2D2A4A]/50 rounded-xl p-4 w-full text-left space-y-2">
-              <div className="text-[#9CA3AF] text-xs uppercase tracking-widest font-semibold">National Snapshot</div>
-              <div className="text-white text-2xl font-bold">{totalPoliticians} <span className="text-[#6B7280] text-sm font-normal">politicians rated</span></div>
+            <div className="editorial-panel rounded-[22px] p-4 w-full text-left space-y-2">
+              <div className="eyebrow text-[11px] text-[var(--bm-orange-soft)]">National Snapshot</div>
+              <div className="text-[var(--bm-text)] text-3xl font-bold">{totalPoliticians} <span className="text-[var(--bm-muted)] text-sm font-normal">politicians rated</span></div>
               {[
-                { label: 'Pro-Crypto (A–B)',    count: proCount,   color: '#22C55E', pct: Math.round(proCount / totalPoliticians * 100) },
-                { label: 'Neutral (C)',          count: mixedCount, color: '#9CA3AF', pct: Math.round(mixedCount / totalPoliticians * 100) },
-                { label: 'Anti-Crypto (F)',      count: antiCount,  color: '#EF4444', pct: Math.round(antiCount / totalPoliticians * 100) },
+                { label: 'Pro-Crypto (A-B)',      count: proCount,   color: '#22C55E', pct: Math.round(proCount / totalPoliticians * 100) },
+                { label: 'Neutral on Crypto (C)', count: mixedCount, color: '#9CA3AF', pct: Math.round(mixedCount / totalPoliticians * 100) },
+                { label: 'Against Crypto (D-F)',  count: antiCount,  color: '#F97316', pct: Math.round(antiCount / totalPoliticians * 100) },
               ].map(({ label, count, color, pct }) => (
                 <div key={label} className="flex items-center gap-2 text-xs">
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-                  <span className="text-[#D1D5DB] flex-1">{label}</span>
+                  <span className="flex-1 text-[var(--bm-text)]" style={{ opacity: 0.85 }}>{label}</span>
                   <span className="font-semibold tabular-nums" style={{ color }}>{count}</span>
-                  <div className="w-16 bg-[#2D2A4A] rounded-full h-1.5">
+                  <div className="w-16 bg-[rgba(255,255,255,0.06)] rounded-full h-1.5">
                     <div className="h-1.5 rounded-full" style={{ background: color, width: `${pct}%` }} />
                   </div>
                 </div>
               ))}
             </div>
           )}
-          <CTAButton size="md" className="mt-2" />
+          <CTAButton size="md" />
         </div>
       );
     }
@@ -985,28 +1120,17 @@
       const [mobileOpen,   setMobileOpen]   = useState(false);
       const [rawPeople,    setRawPeople]    = useState([]);
 
-      // Fetch live data from SWC API, fallback to local compact JSON
+      // Always use local corrected data (visibility-filtered swc_embedded_data.json)
       useEffect(() => {
-        fetch(CONFIG.SWC_API_URL)
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(data => {
-            const people = data.people || [];
+        fetch('swc_embedded_data.json')
+          .then(r => r.json())
+          .then(compact => {
+            const people = decodeCompactData(compact);
             setRawPeople(people);
             setRaces(buildRaces(people));
             setLoading(false);
           })
-          .catch(() => {
-            // API failed (CORS, network, etc.) — try local fallback
-            fetch('swc_embedded_data.json')
-              .then(r => r.json())
-              .then(compact => {
-                const people = decodeCompactData(compact);
-                setRawPeople(people);
-                setRaces(buildRaces(people));
-                setLoading(false);
-              })
-              .catch(() => { setApiError(true); setLoading(false); });
-          });
+          .catch(() => { setApiError(true); setLoading(false); });
       }, []);
 
 
@@ -1021,11 +1145,21 @@
         scored.forEach(p => {
           const s = p.manuallyOverriddenStanceScore ?? p.computedStanceScore;
           if (s >= 70) pro++;        // A or B grade
-          else if (s >= 40) mixed++; // C grade
-          else anti++;               // F grade
+          else if (s >= 50) mixed++; // C grade
+          else anti++;               // D or F grade
         });
         return { total: scored.length, pro, mixed, anti };
       }, [rawPeople]);
+
+      const raceCounts = useMemo(() => {
+        let senate = 0;
+        let house = 0;
+        Object.values(races).forEach(stateData => {
+          if (stateData?.senate) senate += 1;
+          house += Object.keys(stateData?.house || {}).length;
+        });
+        return { senate, house };
+      }, [races]);
 
       function handleStateClick(fips) {
         setSelectedFips(fips);
@@ -1049,6 +1183,15 @@
         setMobileOpen(false);
       }
 
+      useEffect(() => {
+        if (!mobileOpen) return undefined;
+        const previousOverscroll = document.body.style.overscrollBehavior;
+        document.body.style.overscrollBehavior = 'none';
+        return () => {
+          document.body.style.overscrollBehavior = previousOverscroll;
+        };
+      }, [mobileOpen]);
+
       const sidebarContent = () => {
         if (panelMode === 'state' && selectedFips)
           return <StatePanel fips={selectedFips} races={races} onClose={handleClose} />;
@@ -1059,38 +1202,54 @@
 
       if (loading) {
         return (
-          <div className="flex flex-col items-center justify-center h-screen bg-[#0D0D1A] gap-4">
-            <ShieldIcon size={48} />
-            <div className="text-[#6B7280] text-sm anim-pulse">Loading race data…</div>
+          <div className="flex flex-col items-center justify-center h-screen gap-4 px-6 text-center">
+            <div className="editorial-panel rounded-[28px] px-8 py-10">
+              <div className="flex flex-col items-center gap-4">
+                <ShieldIcon size={48} />
+                <div className="eyebrow text-[11px] text-[var(--bm-orange-soft)]">Loading</div>
+                <div className="text-[var(--bm-muted)] text-sm anim-pulse">Loading race data…</div>
+              </div>
+            </div>
           </div>
         );
       }
 
       if (apiError) {
         return (
-          <div className="flex flex-col items-center justify-center h-screen bg-[#0D0D1A] gap-4 p-8 text-center">
-            <ShieldIcon size={48} />
-            <p className="text-[#9CA3AF] text-sm">Map data temporarily unavailable.</p>
-            <CTAButton />
+          <div className="flex flex-col items-center justify-center h-screen gap-4 p-8 text-center">
+            <div className="editorial-panel rounded-[28px] px-8 py-10 max-w-md">
+              <div className="flex flex-col items-center gap-4">
+                <ShieldIcon size={48} />
+                <div className="eyebrow text-[11px] text-[var(--bm-orange-soft)]">Unavailable</div>
+                <p className="text-[var(--bm-muted)] text-sm">Map data temporarily unavailable.</p>
+                <CTAButton />
+              </div>
+            </div>
           </div>
         );
       }
 
       return (
-        <div className="flex flex-col" style={{ height: '100dvh', background: '#0D0D1A', overflow: 'hidden' }}>
-          {/* Header removed per Bitcoin Magazine feedback */}
+        <div className="flex flex-col" style={{ height: '100dvh', background: 'transparent', overflow: 'hidden' }}>
+          <Header senateRaceCount={raceCounts.senate} houseRaceCount={raceCounts.house} />
 
           {/* ── Desktop layout (md+) ── */}
-          <div className="hidden md:flex flex-1 overflow-hidden">
-            <aside className="w-[380px] flex-shrink-0 flex flex-col border-r border-[#2D2A4A] bg-[#1A1730] overflow-hidden">
+          <div className="hidden md:flex flex-1 overflow-hidden p-4 md:p-5 gap-4">
+            <aside className="w-[410px] flex-shrink-0 flex flex-col overflow-hidden rounded-[28px] editorial-panel">
               <AddressSearch onResult={handleAddressResult} />
               <div className="flex-1 overflow-hidden">
                 {sidebarContent()}
               </div>
             </aside>
 
-            <main className="flex-1 relative flex items-center justify-center bg-[#0D0D1A] overflow-hidden">
-              <div className="w-full h-full flex items-center justify-center p-2 md:p-4">
+            <main className="flex-1 relative flex items-center justify-center overflow-hidden rounded-[30px] map-frame">
+              <div className="absolute inset-x-0 top-0 z-10 pointer-events-none p-6">
+                <div className="max-w-xl">
+                  <div className="eyebrow text-[11px] text-[var(--bm-orange-soft)]">Election Intelligence</div>
+                  <h2 className="font-display text-[38px] uppercase leading-none text-[var(--bm-text)]">Track The Map</h2>
+                </div>
+              </div>
+              <div className="w-full h-full flex items-center justify-center p-4 md:p-6">
                 <USMap onStateClick={handleStateClick} selectedFips={selectedFips} races={races} />
               </div>
               <MapLegend />
@@ -1098,12 +1257,12 @@
           </div>
 
           {/* ── Mobile layout (< md) ── */}
-          <div className="flex md:hidden flex-col flex-1 overflow-hidden" style={{ paddingBottom: '64px' }}>
-            <div className="relative flex-1 min-h-0 flex items-center justify-center">
+          <div className="flex md:hidden flex-col flex-1 overflow-hidden px-3 pb-[78px] gap-3">
+            <div className="relative flex-1 min-h-0 flex items-center justify-center rounded-[26px] map-frame">
               <USMap onStateClick={handleStateClick} selectedFips={selectedFips} races={races} />
               <MapLegend />
             </div>
-            <div className="bg-[#1A1730] border-t border-[#2D2A4A]">
+            <div className="rounded-[24px] editorial-panel overflow-hidden">
               <AddressSearch onResult={handleAddressResult} />
             </div>
           </div>
@@ -1111,11 +1270,11 @@
           {/* ── Mobile bottom sheet ── */}
           {mobileOpen && (
             <div className="md:hidden fixed inset-0 z-40 anim-fade" style={{ background: 'rgba(0,0,0,0.65)' }} onClick={handleClose}>
-              <div className="anim-slide-up absolute bottom-0 left-0 right-0 bg-[#1A1730] rounded-t-2xl" style={{ maxHeight: '82vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+              <div className="anim-slide-up absolute bottom-0 left-0 right-0 rounded-t-[28px] editorial-panel overflow-hidden" style={{ height: '82dvh', maxHeight: '82dvh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
                 <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                  <div className="w-10 h-1 bg-[#2D2A4A] rounded-full" />
+                  <div className="w-10 h-1 bg-[rgba(255,255,255,0.16)] rounded-full" />
                 </div>
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-hidden">
                   {sidebarContent()}
                 </div>
               </div>
@@ -1123,7 +1282,7 @@
           )}
 
           {/* ── Mobile fixed CTA ── */}
-          <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 px-4 py-3 bg-[#0D0D1A] border-t border-[#2D2A4A]">
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 px-4 py-3 bg-[rgba(6,6,6,0.92)] border-t border-[var(--bm-border)] backdrop-blur-xl">
             <CTAButton size="lg" block />
           </div>
         </div>

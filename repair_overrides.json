@@ -1,0 +1,178 @@
+{
+  "excluded_slugs": {
+    "dave---voneschen": {
+      "local_race": "MT House 22",
+      "reason": "invalid_federal_house_district"
+    },
+    "fatima---aguerjout": {
+      "local_race": "FL House 59",
+      "reason": "invalid_federal_house_district"
+    },
+    "pilar---cavallo-campisi": {
+      "local_race": "PA House 36",
+      "reason": "invalid_federal_house_district"
+    },
+    "wali---muhammad": {
+      "local_race": "IA House 17",
+      "reason": "invalid_federal_house_district"
+    }
+  },
+  "extra_candidates": [
+    {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "name": "Janet Trafton Mills",
+      "party": "D",
+      "photo": null,
+      "score": -1,
+      "senate_run": 0,
+      "slug": "janet---mills",
+      "state": "ME",
+      "visibility": 1
+    }
+  ],
+  "generated_from": "verify_comparison_report.csv",
+  "race_overrides": {
+    "al---green": {
+      "chamber": "H",
+      "district": "18",
+      "state": "TX"
+    },
+    "ami---bera": {
+      "chamber": "H",
+      "district": "3",
+      "state": "CA"
+    },
+    "angie---craig": {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "MN"
+    },
+    "ashley---hinson": {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "IA"
+    },
+    "barry---moore": {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "AL"
+    },
+    "ben---mcadams": {
+      "chamber": "H",
+      "district": "1",
+      "state": "UT"
+    },
+    "chris---collins": {
+      "chamber": "H",
+      "district": "19",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "FL"
+    },
+    "chris---pappas": {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "NH"
+    },
+    "colin---allred": {
+      "chamber": "H",
+      "district": "33",
+      "state": "TX"
+    },
+    "david---cawthorn": {
+      "chamber": "H",
+      "district": "19",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "FL"
+    },
+    "earl---carter": {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "GA"
+    },
+    "greg---casar": {
+      "chamber": "H",
+      "district": "37",
+      "state": "TX"
+    },
+    "garland---barr": {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "KY"
+    },
+    "haley---stevens": {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "MI"
+    },
+    "harriet---hageman": {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "WY"
+    },
+    "julia---letlow": {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "LA"
+    },
+    "julie--johnson": {
+      "chamber": "H",
+      "district": "33",
+      "state": "TX"
+    },
+    "ken---calvert": {
+      "chamber": "H",
+      "district": "40",
+      "state": "CA"
+    },
+    "mary---peltola": {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "AK"
+    },
+    "mike---collins": {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "GA"
+    },
+    "seth---moulton": {
+      "chamber": "S",
+      "district": "",
+      "incumbent": 0,
+      "senate_run": 0,
+      "state": "MA"
+    },
+    "tom---malinowski": {
+      "chamber": "H",
+      "district": "11",
+      "state": "NJ"
+    }
+  },
+  "score_overrides": {},
+  "version": 1
+}

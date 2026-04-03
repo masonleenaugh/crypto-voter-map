@@ -1,0 +1,2 @@
+CATEGORY,SUBTYPE,SLUG,NAME,DETAILS,LOCAL_VISIBLE,LOCAL_RACE,LOCAL_PARTY,LOCAL_SCORE,PAGE_RACE,PAGE_PARTY,PAGE_SCORE,PAGE_SCORE_BUCKET,API_RACE,API_PARTY,API_SCORE,API_SCORE_BUCKET
+candidate_missing_from_visible_set,exists_locally_but_not_visible,chase---laporte,Chase Laporte,"Candidate appears on the page and exists locally, but not in the visible race set.",1,KS Senate,R,-1,KS House 3,R,-1,UNRATED,KS Senate,R,-1,UNRATED
